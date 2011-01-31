@@ -2,6 +2,7 @@
 
 > {-# LANGUAGE GADTs, KindSignatures, TypeOperators #-}
 > {-# OPTIONS_GHC -Wall #-}
+> {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
 |
 Module      :  ComposeFunctor
