@@ -13,8 +13,7 @@ License:             BSD3
 License-File:        COPYING
 Stability:           experimental
 build-type:          Simple
-
-Package-Url:         http://code.haskell.org/~conal/code/numbers-vectors-trees
+Package-Url:         http://github.com/conal/numbers-vectors-trees
 
 Library
   hs-Source-Dirs:      src
