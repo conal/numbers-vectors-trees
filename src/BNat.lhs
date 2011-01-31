@@ -10,7 +10,8 @@ License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-Simple module for bounded unary natural numbers
+Simple module for bounded unary natural numbers.
+See <http://conal.net/blog/posts/type-bounded-numbers/>.
 
 > module BNat where
 
