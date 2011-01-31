@@ -1,11 +1,12 @@
  <!-- -*- markdown -*-
 
 > {-# LANGUAGE GADTs, KindSignatures, EmptyDataDecls, ScopedTypeVariables #-}
+> {-# LANGUAGE TypeFamilies, TypeOperators #-}  -- for trie
+
+< {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}  -- For Maxime's version
 
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
-
-< {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}  -- For Maxime's version
 
 |
 Module      :  Vec
@@ -24,9 +25,13 @@ Simple module for length-typed vectors
 
 < import Control.Monad (join) -- with Maxime's version
 
+> import FunctorCombo.StrictMemo
+
 > import TNat
 > import Nat
 > import BNat
+
+> import ComposeFunctor
 
  -->
 
@@ -206,6 +211,67 @@ Give it a try:
 
 It's a shame here to map to the unconstrained `Integer` type, since (a) the result must be a natural number, and (b) the result is statically bounded by $b^k$.
 
+Vector tries
+============
+
+Using the analysis above, we can easily define tries over vectors as $n$-ary composition of tries over the vector element type.
+Again, there is a right-folded and a left-folded version.
+
+**Right-folded composition**
+
+< instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
+<   type Trie (Vec n a) = Trie a :^ n
+
+Conversion from trie to function is, as always, a trie look-up.
+Its definition closely follows the definition of `f :^ n`:
+
+<   ZeroC v `untrie` ZVec      = v
+<   SuccC t `untrie` (a :< as) = (t `untrie` a) `untrie` as
+
+ <!--
+
+<   _ `untrie` _ = error "untrie on Vec n a: Can't happen" {- why nec? -}
+
+<   enumerate = error "enumerate: not yet defined on Vec n a"
+
+ -->
+
+For `untrie`, we were able to follow the zero/successor structure of the trie.
+For `trie`, we don't have such a structure to follow, but we can play the same trick as for defining `units` above: use the `nat` method of the `IsNat` class to synthesize a number of type `Nat n`, and then follow the structure of that number in a new recursive function definition.
+
+<   trie = trieN nat
+
+where
+
+< trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
+< trieN Zero     f = ZeroC (f ZVec)
+< trieN (Succ _) f = SuccC (trie (\ a -> trie (f . (a :<))))
+
+
+**Left-folded composition**
+
+The change from right-folding to left-folding is minuscule.
+
+> instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
+>   type Trie (Vec n a) = Trie a :^ n
+>   ZeroC b `untrie` ZVec      = b
+>   SuccC t `untrie` (a :< as) = (t `untrie` as) `untrie` a
+
+ <!--
+
+>   _ `untrie` _ = error "untrie on Vec n a: Can't happen" -- why nec?
+
+>   enumerate = error "enumerate: not yet defined on Vec n a"
+
+ -->
+
+>   trie = trieN nat
+
+> trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
+> trieN Zero     f = ZeroC (f ZVec)
+> trieN (Succ _) f = SuccC (trie (\ as -> trie (f . (:< as))))
+
+
  <!--[
 
 [Maxime Henrion suggested](http://conal.net/blog/posts/fixing-lists/comment-page-1/#comment-71660) an alternative to my `Applicative` instance above:
@@ -219,7 +285,7 @@ It's a shame here to map to the unconstrained `Integer` type, since (a) the resu
 <   (f :< fs) <*> (a :< as) = f a :< (fs <*> as)
 
 A small drawback of this version is that it requires the GHC language extensions `FlexibleInstances` and `FlexibleContexts`.
-I suspect the constraint `Applicative (Vec n)` would be cumbersome in practice.
+I hadn’t considered splitting the one instance into two. I like the simplicity of this solution, though I suspect the constraint `Applicative (Vec n)` would be cumbersome in practice.
 
 Continuing on to `Monad`:
 
