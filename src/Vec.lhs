@@ -15,7 +15,12 @@ License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-Simple module for length-typed vectors
+Simple module for length-typed vectors.
+See the following blog posts:
+<http://conal.net/blog/posts/fixing-lists/>, 
+<http://conal.net/blog/posts/doing-more-with-length-typed-vectors/>,
+<http://conal.net/blog/posts/reverse-engineering-length-typed-vectors/>, and
+<http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
 > module Vec (Vec(..),headV,tailV,fromList,littleEndianToZ,bigEndianToZ) where
 
@@ -219,57 +224,57 @@ Again, there is a right-folded and a left-folded version.
 
 **Right-folded composition**
 
-< instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
-<   type Trie (Vec n a) = Trie a :^ n
+> instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
+>   type Trie (Vec n a) = Trie a :^ n
 
 Conversion from trie to function is, as always, a trie look-up.
 Its definition closely follows the definition of `f :^ n`:
 
-<   ZeroC v `untrie` ZVec      = v
-<   SuccC t `untrie` (a :< as) = (t `untrie` a) `untrie` as
+>   ZeroC v `untrie` ZVec      = v
+>   SuccC t `untrie` (a :< as) = (t `untrie` a) `untrie` as
 
  <!--
 
-<   _ `untrie` _ = error "untrie on Vec n a: Can't happen" {- why nec? -}
+>   _ `untrie` _ = error "untrie on Vec n a: Can't happen" {- why nec? -}
 
-<   enumerate = error "enumerate: not yet defined on Vec n a"
+>   enumerate = error "enumerate: not yet defined on Vec n a"
 
  -->
 
 For `untrie`, we were able to follow the zero/successor structure of the trie.
 For `trie`, we don't have such a structure to follow, but we can play the same trick as for defining `units` above: use the `nat` method of the `IsNat` class to synthesize a number of type `Nat n`, and then follow the structure of that number in a new recursive function definition.
 
-<   trie = trieN nat
+>   trie = trieN nat
 
 where
 
-< trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
-< trieN Zero     f = ZeroC (f ZVec)
-< trieN (Succ _) f = SuccC (trie (\ a -> trie (f . (a :<))))
+> trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
+> trieN Zero     f = ZeroC (f ZVec)
+> trieN (Succ _) f = SuccC (trie (\ a -> trie (f . (a :<))))
 
 
 **Left-folded composition**
 
 The change from right-folding to left-folding is minuscule.
 
-> instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
->   type Trie (Vec n a) = Trie a :^ n
->   ZeroC b `untrie` ZVec      = b
->   SuccC t `untrie` (a :< as) = (t `untrie` as) `untrie` a
+< instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
+<   type Trie (Vec n a) = Trie a :^ n
+<   ZeroC b `untrie` ZVec      = b
+<   SuccC t `untrie` (a :< as) = (t `untrie` as) `untrie` a
 
  <!--
 
->   _ `untrie` _ = error "untrie on Vec n a: Can't happen" -- why nec?
+<   _ `untrie` _ = error "untrie on Vec n a: Can't happen" -- why nec?
 
->   enumerate = error "enumerate: not yet defined on Vec n a"
+<   enumerate = error "enumerate: not yet defined on Vec n a"
 
  -->
 
->   trie = trieN nat
+<   trie = trieN nat
 
-> trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
-> trieN Zero     f = ZeroC (f ZVec)
-> trieN (Succ _) f = SuccC (trie (\ as -> trie (f . (:< as))))
+< trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
+< trieN Zero     f = ZeroC (f ZVec)
+< trieN (Succ _) f = SuccC (trie (\ as -> trie (f . (:< as))))
 
 
  <!--[
