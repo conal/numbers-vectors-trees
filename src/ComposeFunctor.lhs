@@ -11,9 +11,10 @@ License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-N-ary functor composition
+N-ary functor composition.
+See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
-> module ComposeFunctor where
+> module ComposeFunctor ((:^)(..)) where
 
 > import Control.Applicative (Applicative(..),liftA2)
 
@@ -42,9 +43,9 @@ Let's look at each fold direction, starting with the right, i.e.,
 
 Writing as a GADT:
 
-< data (:^) :: (* -> *) -> * -> (* -> *) where
-<   ZeroC :: a -> (f :^ Z) a
-<   SuccC :: IsNat n => f ((f :^ n) a) -> (f :^ (S n)) a
+> data (:^) :: (* -> *) -> * -> (* -> *) where
+>   ZeroC :: a -> (f :^ Z) a
+>   SuccC :: IsNat n => f ((f :^ n) a) -> (f :^ (S n)) a
 
 Functors compose into functors and applicatives into applicatives.
 (See [*Applicative Programming with Effects*] (section 5) and [*Semantic editor combinators*].)
@@ -90,9 +91,9 @@ For left-folded composition, a tiny change suffices in the `S` case:
 
 which translates to a correspondingly tiny change in the `SuccC` constructor.
 
-> data (:^) :: (* -> *) -> * -> (* -> *) where
->   ZeroC :: a -> (f :^ Z) a
->   SuccC :: IsNat n => (f :^ n) (f a) -> (f :^ (S n)) a
+< data (:^) :: (* -> *) -> * -> (* -> *) where
+<   ZeroC :: a -> (f :^ Z) a
+<   SuccC :: IsNat n => (f :^ n) (f a) -> (f :^ (S n)) a
 
 The `Functor` and `Applicative` instances are completely unchanged.
 
@@ -101,19 +102,19 @@ Neat, huh?
 Experiments
 ===========
 
-> unZeroC :: (f :^ Z) a -> a
-> unZeroC (ZeroC a) = a
->
-> unSuccC :: IsNat n => (f :^ (S n)) a -> (f :^ n) (f a)
-> unSuccC (SuccC as) = as
+< unZeroC :: (f :^ Z) a -> a
+< unZeroC (ZeroC a) = a
+<
+< unSuccC :: IsNat n => (f :^ (S n)) a -> f ((f :^ n) a)
+< unSuccC (SuccC as) = as
 
-> inZeroC :: (a -> b)
->         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
-> inZeroC h (ZeroC a ) = ZeroC (h a )
+< inZeroC :: (a -> b)
+<         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+< inZeroC h (ZeroC a ) = ZeroC (h a )
 
-> inSuccC :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b))
->         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
-> inSuccC h (SuccC as) = SuccC (h as)
+< inSuccC :: (forall n. IsNat n => f ((f :^ n) a) -> f ((f :^ n) b))
+<         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+< inSuccC h (SuccC as) = SuccC (h as)
 
 < inZeroC2 :: (a -> b -> c)
 <          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
@@ -122,6 +123,8 @@ Experiments
 < inSuccC2 :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
 <          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
 < inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
+
+Similarly for left-folded composition.
 
 With these definitions, there's a tidier definition for `(<*>)`:
 
