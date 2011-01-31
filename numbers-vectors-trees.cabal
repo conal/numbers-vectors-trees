@@ -23,6 +23,7 @@ Library
      TNat
      Nat
      BNat
+     ComposeFunctor
      Vec
                        
   ghc-options:         -Wall
