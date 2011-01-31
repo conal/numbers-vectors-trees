@@ -18,8 +18,12 @@ Package-Url:         http://github.com/conal/numbers-vectors-trees
 Library
   hs-Source-Dirs:      src
   Extensions:
-  Build-Depends:       base<5
+  Build-Depends:       base<5, functor-combo
   Exposed-Modules:     
+     TNat
+     Nat
+     BNat
+     Vec
                        
   ghc-options:         -Wall
 
