@@ -1,6 +1,6 @@
  <!-- -*- markdown -*-
 
-> {-# LANGUAGE GADTs, KindSignatures, TypeOperators #-}
+> {-# LANGUAGE GADTs, KindSignatures, TypeOperators, Rank2Types #-}
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
@@ -97,3 +97,33 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 The `Functor` and `Applicative` instances are completely unchanged.
 
 Neat, huh?
+
+Experiments
+===========
+
+> unZeroC :: (f :^ Z) a -> a
+> unZeroC (ZeroC a) = a
+>
+> unSuccC :: IsNat n => (f :^ (S n)) a -> (f :^ n) (f a)
+> unSuccC (SuccC as) = as
+
+> inZeroC :: (a -> b)
+>         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+> inZeroC h (ZeroC a ) = ZeroC (h a )
+
+> inSuccC :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b))
+>         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+> inSuccC h (SuccC as) = SuccC (h as)
+
+< inZeroC2 :: (a -> b -> c)
+<          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+< inZeroC2 h (ZeroC a ) (ZeroC b ) = ZeroC (h a  b )
+
+< inSuccC2 :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
+<          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+< inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
+
+With these definitions, there's a tidier definition for `(<*>)`:
+
+<   (<*>) = inZeroC2 ($) `lub` inSuccC2 (liftA2 (<*>))
+
