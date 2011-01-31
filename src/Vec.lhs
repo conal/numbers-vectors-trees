@@ -1,7 +1,9 @@
  <!-- -*- markdown -*-
 
 > {-# LANGUAGE GADTs, KindSignatures, EmptyDataDecls, ScopedTypeVariables #-}
+
 > {-# OPTIONS_GHC -Wall #-}
+> {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
 < {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}  -- For Maxime's version
 
@@ -48,11 +50,9 @@ The `headV` and `tailV` functions are like `head` and `tail` but understand leng
 
 > headV :: Vec (S n) a -> a
 > headV (a :< _) = a
-> headV _        = error "bogus case pending compiler fix"
 
 > tailV :: Vec (S n) a -> Vec n a
 > tailV (_ :< as) = as
-> tailV _         = error "bogus case pending compiler fix"
 
 Unlike their list counterparts, `headV` and `tailV` are *safe*, in that the precondition of non-emptiness is verified statically.
 
