@@ -5,7 +5,7 @@
 
 < {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}  -- For Maxime's version
 
-> {-# OPTIONS_GHC -Wall #-}
+> {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
 |
@@ -27,6 +27,7 @@ See the following blog posts:
 > import Prelude hiding (foldr,foldl)
 > import Control.Applicative (Applicative(..))
 > import Data.Foldable (Foldable(..),foldl',foldr')
+> import Control.Arrow (first)
 
 < import Control.Monad (join) -- with Maxime's version
 
@@ -53,8 +54,7 @@ Length-typed vectors
 >
 > data Vec :: * -> * -> * where
 >   ZVec :: Vec Z a
->   (:<) :: a -> Vec n a -> Vec (S n) a
-
+>   (:<) :: IsNat n => a -> Vec n a -> Vec (S n) a
 
 The `headV` and `tailV` functions are like `head` and `tail` but understand lengths:
 
@@ -182,6 +182,22 @@ Showing
 > instance Show a => Show (Vec n a) where
 >   show v = "fromList " ++ show (toList v)
 
+Vectors as tries
+================
+
+An $n$-vector associates a value with every number from $0$ to $n-1$, so it's a trie over `BNat n`.
+
+> instance IsNat n => HasTrie (BNat n) where
+>   type Trie (BNat n) = Vec n
+>   trie = trieB nat
+>   untrie (a :< _ ) BZero     = a
+>   untrie (_ :< as) (BSucc m) = untrie as m
+>   enumerate (a :< as) = (BZero,a) : map (first BSucc) (enumerate as)
+
+> trieB :: Nat n -> (BNat n -> a) -> (BNat n :->: a)
+> trieB Zero     _ = ZVec
+> trieB (Succ m) f = f BZero :< trieB m (f . BSucc)
+
 
 Vectors as numbers
 ==================
@@ -190,6 +206,10 @@ We've seen that `Vec` is a trie for bounded numbers.
 It's also the case that a vector of digits can be used to *represent* numbers
 
 > type Digits k b = Vec k (BNat b)
+
+Or, more pleasing to my eye,
+
+< type Digits n b = BNat n :->: BNat b
 
 These representations can be given a little-endian or big-endian interpretation:
 
@@ -232,14 +252,7 @@ Its definition closely follows the definition of `f :^ n`:
 
 >   ZeroC v `untrie` ZVec      = v
 >   SuccC t `untrie` (a :< as) = (t `untrie` a) `untrie` as
-
- <!--
-
->   _ `untrie` _ = error "untrie on Vec n a: Can't happen" {- why nec? -}
-
 >   enumerate = error "enumerate: not yet defined on Vec n a"
-
- -->
 
 For `untrie`, we were able to follow the zero/successor structure of the trie.
 For `trie`, we don't have such a structure to follow, but we can play the same trick as for defining `units` above: use the `nat` method of the `IsNat` class to synthesize a number of type `Nat n`, and then follow the structure of that number in a new recursive function definition.
