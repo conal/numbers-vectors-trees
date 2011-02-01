@@ -2,6 +2,7 @@
 
 > {-# LANGUAGE GADTs, KindSignatures, ScopedTypeVariables #-}
 > {-# OPTIONS_GHC -Wall #-}
+> {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
 |
 Module      :  BNat
@@ -32,6 +33,11 @@ The type `BNat n` (unary bounded by $n$) that has values corresponding to $0, ..
 >   BSucc :: BNat n -> BNat (S n)
 
 In other words, $0 < n+1$ and $m < n \Rightarrow m+1 < n+1$.
+
+Safe predecessor:
+
+> predB :: BNat (S n) -> BNat n
+> predB (BSucc n) = n
 
 Note that `BNat` is defined almost exactly like `Nat`.
 For comparison,
@@ -117,4 +123,3 @@ Equality and ordering are easily defined, all based on simple properties of numb
 >   BSucc m `compare` BSucc m' = m `compare` m'
 >   BZero   `compare` BSucc _  = LT
 >   BSucc _ `compare` BZero    = GT
-
