@@ -16,8 +16,10 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
 > module ComposeFunctor ((:^)(..)) where
 
+> import Prelude hiding (and)
+
 > import Control.Applicative (Applicative(..),liftA2,(<$>))
-> import Data.Foldable (Foldable(..))
+> import Data.Foldable (Foldable(..),and)
 > import Data.Traversable (Traversable(..))
 
 > import TNat
@@ -121,4 +123,16 @@ Experiments
 With these definitions, there's a tidier definition for `(<*>)`:
 
 <   (<*>) = inZeroC2 ($) `lub` inSuccC2 (liftA2 (<*>))
+
+Equality and ordering
+=====================
+
+Standard forms:
+
+> instance (Foldable f, Applicative f, IsNat n, Eq a) => Eq ((f :^ n) a) where
+>   (==) = (fmap.fmap) and (liftA2 (==))
+>
+> instance (Foldable f, Applicative f, IsNat n, Ord a) => Ord ((f :^ n) a) where
+>   compare = (fmap.fmap) fold (liftA2 compare)
+
 

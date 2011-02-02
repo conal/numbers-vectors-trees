@@ -31,12 +31,12 @@ See those modules for more description.
 >   , transpose, last, init
 >   ) where
 
-> import Prelude hiding (foldr,foldl,last,init)
+> import Prelude hiding (foldr,foldl,last,init,and)
 
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
 > import Data.Foldable (Foldable(..))
 > import Data.Traversable (Traversable(..))
-> import Data.Foldable (Foldable(..),foldl',foldr')
+> import Data.Foldable (Foldable(..),foldl',foldr',and)
 > import Data.Traversable
 > import Control.Arrow (first)
 
@@ -127,6 +127,19 @@ The instance definitions are completely unchanged, since they are based purely o
 >   sequenceA (ZeroC qa) = ZeroC <$> qa
 >   sequenceA (SuccC as) = fmap SuccC . sequenceA . fmap sequenceA $ as
 
+Equality and ordering
+---------------------
+
+Standard forms:
+
+> instance (Foldable f, Applicative f, IsNat n, Eq a) => Eq ((f :^ n) a) where
+>   (==) = (fmap.fmap) and (liftA2 (==))
+>
+> instance (Foldable f, Applicative f, IsNat n, Ord a) => Ord ((f :^ n) a) where
+>   compare = (fmap.fmap) fold (liftA2 compare)
+
+
+
 Vectors
 =======
 
@@ -206,6 +219,16 @@ Showing
 
 > instance Show a => Show (Vec n a) where
 >   show v = "fromList " ++ show (toList v)
+
+Equality and ordering
+---------------------
+
+> instance (IsNat n, Eq a) => Eq (Vec n a) where
+>   (==) = (fmap.fmap) and (liftA2 (==))
+>
+> instance (IsNat n, Ord a) => Ord (Vec n a) where
+>   compare = (fmap.fmap) fold (liftA2 compare)
+
 
 Vectors as numbers
 ------------------

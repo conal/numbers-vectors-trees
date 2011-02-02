@@ -25,9 +25,9 @@ See the following blog posts:
 >            , transpose, last, init
 >            ) where
 
-> import Prelude hiding (foldr,foldl,last,init)
-> import Control.Applicative (Applicative(..),(<$>)) -- ,liftA2
-> import Data.Foldable (Foldable(..),foldl',foldr')
+> import Prelude hiding (foldr,foldl,last,init,and)
+> import Control.Applicative (Applicative(..),(<$>),liftA2)
+> import Data.Foldable (Foldable(..),foldl',foldr',and)
 > import Data.Traversable
 > import Control.Arrow (first)
 
@@ -181,6 +181,36 @@ Showing
 > instance Show a => Show (Vec n a) where
 >   show v = "fromList " ++ show (toList v)
 
+Equality and ordering
+=====================
+
+Standard forms:
+
+< instance Eq a => Eq (Vec n a) where
+<   ZVec      == ZVec      = True
+<   (a :< as) == (b :< bs) = a == b && as == bs
+<
+< instance Ord a => Ord (Vec n a) where
+<   ZVec      `compare` ZVec      = EQ
+<   (a :< as) `compare` (b :< bs) = (a `compare` b) `ordThen` (as `compare` bs)
+
+More simply:
+
+< instance (IsNat n, Eq a) => Eq (Vec n a) where
+<   as == bs = and (liftA2 (==) as bs)
+<
+< instance (IsNat n, Ord a) => Ord (Vec n a) where
+<   as `compare` bs = fold (liftA2 compare as bs)
+
+Or
+
+> instance (IsNat n, Eq a) => Eq (Vec n a) where
+>   (==) = (fmap.fmap) and (liftA2 (==))
+>
+> instance (IsNat n, Ord a) => Ord (Vec n a) where
+>   compare = (fmap.fmap) fold (liftA2 compare)
+
+
 Vectors as tries
 ================
 
@@ -304,4 +334,3 @@ See [mux's stuff](https://bitbucket.org/mumux/stuff/src/1e9537e03f08/Vector.hs).
 Mux says
 
  > ah, from a related bug report: "I wish this was easier to fix. The difficulty is that the type inference engine (which has a sophisticated constraint solver) only sees one equation at a time, and hence can't check exhaustiveness). But the overlap checker (which sees all the equations at once) does not have a sophisticated solver." from spj
-
