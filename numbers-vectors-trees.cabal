@@ -1,5 +1,5 @@
 Name:                numbers-vectors-trees
-Version:             0.1.0
+Version:             0.1.2
 Cabal-Version:       >= 1.2
 Synopsis:            
 Category:            
@@ -18,14 +18,16 @@ Package-Url:         http://github.com/conal/numbers-vectors-trees
 Library
   hs-Source-Dirs:      src
   Extensions:
-  Build-Depends:       base<5, functor-combo
+  Build-Depends:       base<5, functor-combo, applicative-numbers
   Exposed-Modules:     
      TNat
      Nat
      BNat
      ComposeFunctor
      Vec
+     VecNum
      Left
+     LeftNum
                        
   ghc-options:         -Wall
 
