@@ -25,6 +25,7 @@ Library
      BNat
      ComposeFunctor
      Vec
+     Left
                        
   ghc-options:         -Wall
 
