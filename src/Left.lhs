@@ -34,6 +34,8 @@ See those modules for more description.
 > import Prelude hiding (foldr,foldl,last,init)
 
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
+> import Data.Foldable (Foldable(..))
+> import Data.Traversable (Traversable(..))
 > import Data.Foldable (Foldable(..),foldl',foldr')
 > import Data.Traversable
 > import Control.Arrow (first)
@@ -115,6 +117,13 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 > pureN Zero     a = ZeroC a
 > pureN (Succ _) a = SuccC ((pure . pure) a)
 
+> instance (Functor f, Foldable f) => Foldable (f :^ n) where
+>   foldMap h (ZeroC a ) = h a
+>   foldMap h (SuccC as) = fold (foldMap h <$> as)
+
+> instance Traversable f => Traversable (f :^ n) where
+>   sequenceA (ZeroC qa) = ZeroC <$> qa
+>   sequenceA (SuccC as) = fmap SuccC . sequenceA . fmap sequenceA $ as
 
 Vectors
 =======
@@ -256,21 +265,16 @@ From mux
 
 See [mux's stuff](https://bitbucket.org/mumux/stuff/src/1e9537e03f08/Vector.hs).
 
+> instance Traversable (Vec n) where
+>   traverse _ ZVec      = pure ZVec
+>   traverse h (as :> a) = (:>) <$> traverse h as <*> h a
+
+
 > last :: Vec (S n) a -> a
-> last (ZVec :> x)        = x
-> last (xs@(_ :> _) :> _) = last xs
+> last (ZVec :> a)        = a
+> last (as@(_ :> _) :> _) = last as
 
 > init :: Vec (S n) a -> Vec n a
 > init (ZVec :> _)        = ZVec
-> init (xs@(_ :> _) :> x) = init xs :> x
-
-> instance Traversable (Vec n) where
->   traverse _ ZVec      = pure ZVec
->   traverse f (xs :> x) = (:>) <$> traverse f xs <*> f x
-
-Mux says
-
- > ah, from a related bug report: "I wish this was easier to fix. The difficulty is that the type inference engine (which has a sophisticated constraint  solver) only sees one equation at a time, and hence can't check exhaustiveness). But the overlap checker (which sees all the equations at once) does not  have a sophisticated solver." from spj
-
-
+> init (as@(_ :> _) :> a) = init as :> a
 

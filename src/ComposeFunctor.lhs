@@ -16,7 +16,9 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
 > module ComposeFunctor ((:^)(..)) where
 
-> import Control.Applicative (Applicative(..),liftA2)
+> import Control.Applicative (Applicative(..),liftA2,(<$>))
+> import Data.Foldable (Foldable(..))
+> import Data.Traversable (Traversable(..))
 
 > import TNat
 > import Nat
@@ -74,6 +76,22 @@ Using `lub`, there's a tidier definition of `(<*>)`:
 
 Where `inZeroC2` and `inSuccC2` are *partial* binary functions that work inside of `ZeroC` and `SuccC` as used in various of my blog posts & libraries.
 This example demonstrates another notational benefit of `lub`, extending the techniques in the post [*Lazier function definitions by merging partial values*].
+
+The `Foldable` and `Traversable` classes are also closed under composition.
+
+> instance (Functor f, Foldable f) => Foldable (f :^ n) where
+>   foldMap h (ZeroC a ) = h a
+>   foldMap h (SuccC as) = fold (foldMap h <$> as)
+
+> instance Traversable f => Traversable (f :^ n) where
+>   sequenceA (ZeroC qa) = ZeroC <$> qa
+>   sequenceA (SuccC as) = fmap SuccC . sequenceA . fmap sequenceA $ as
+
+i.e.,
+
+<   sequenceA . ZeroC = fmap ZeroC
+<
+<   sequenceA . SuccC = fmap SuccC . sequenceA . fmap sequenceA
 
 Experiments
 ===========
