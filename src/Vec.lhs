@@ -240,8 +240,8 @@ Vector tries
 
 Using the analysis above, we can easily define tries over vectors as $n$-ary composition of tries over the vector element type.
 Again, there is a right-folded and a left-folded version.
-
-**Right-folded composition**
+I'll give the right-folded version here.
+See the `Left` module for left-folded vectors.
 
 > instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
 >   type Trie (Vec n a) = Trie a :^ n
@@ -263,31 +263,6 @@ where
 > trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
 > trieN Zero     f = ZeroC (f ZVec)
 > trieN (Succ _) f = SuccC (trie (\ a -> trie (f . (a :<))))
-
-
-**Left-folded composition**
-
-The change from right-folding to left-folding is minuscule.
-
-< instance (IsNat n, HasTrie a) => HasTrie (Vec n a) where
-<   type Trie (Vec n a) = Trie a :^ n
-<   ZeroC b `untrie` ZVec      = b
-<   SuccC t `untrie` (a :< as) = (t `untrie` as) `untrie` a
-
- <!--
-
-<   _ `untrie` _ = error "untrie on Vec n a: Can't happen" -- why nec?
-
-<   enumerate = error "enumerate: not yet defined on Vec n a"
-
- -->
-
-<   trie = trieN nat
-
-< trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
-< trieN Zero     f = ZeroC (f ZVec)
-< trieN (Succ _) f = SuccC (trie (\ as -> trie (f . (:< as))))
-
 
 Some more operations
 ====================
