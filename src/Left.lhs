@@ -54,7 +54,7 @@ Bounded numbers
 ===============
 
 Swap the constructors.
-No substantive difference here, but I want to define a different `Trie` functor.
+No difference from right-folding version (other than swapping constructors), but I want to define a different `HasTrie` instance.
 
 > data BNat :: * -> * where
 >   BSucc :: BNat n -> BNat (S n)
@@ -93,7 +93,7 @@ Equality and ordering
 N-ary functor composition
 =========================
 
-For left-folded composition, a tiny change suffices in the `S` case:
+Shifting from right- to left-folded composition, a tiny change suffices in the `S` case:
 
 < f :^ Z   =~ Id
 < f :^ S n =~ (f :^ n) :. f
@@ -103,6 +103,8 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 > data (:^) :: (* -> *) -> * -> (* -> *) where
 >   ZeroC :: a -> (f :^ Z) a
 >   SuccC :: IsNat n => (f :^ n) (f a) -> (f :^ (S n)) a
+
+The instance definitions are completely unchanged, since they are based purely on `Id` and functor composition.
 
 > instance Functor f => Functor (f :^ n) where
 >   fmap h (ZeroC a)  = ZeroC (h a)
@@ -134,6 +136,8 @@ Vectors
 >   ZVec :: Vec Z a
 >   (:>) :: IsNat n => Vec n a -> a -> Vec (S n) a
 
+The definitions are changed systematically to reflect the reordered constructor arguments.
+
 > headV :: Vec (S n) a -> a
 > headV (_ :> a) = a
 
@@ -144,7 +148,7 @@ Instances
 ---------
 
 > instance Functor (Vec n) where
->   fmap _ ZVec     = ZVec
+>   fmap _ ZVec      = ZVec
 >   fmap f (as :> a) = fmap f as :> f a
 
 
