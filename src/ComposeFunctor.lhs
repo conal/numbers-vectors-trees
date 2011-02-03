@@ -31,12 +31,12 @@ References:
 
  -->
 
+Functor composition
+===================
+
 Since composition is associative, a recursive formulation might naturally fold from the left or from the right.
-
-Right-folded composition
-========================
-
-Let's look at each fold direction, starting with the right, i.e.,
+In this module, we'll fold on the right.
+See the module `Left` for left-folded composition.
 
 < f :^ Z   =~ Id
 < f :^ S n =~ f :. (f :^ n)
@@ -75,24 +75,6 @@ Using `lub`, there's a tidier definition of `(<*>)`:
 Where `inZeroC2` and `inSuccC2` are *partial* binary functions that work inside of `ZeroC` and `SuccC` as used in various of my blog posts & libraries.
 This example demonstrates another notational benefit of `lub`, extending the techniques in the post [*Lazier function definitions by merging partial values*].
 
-Left-folded composition
-========================
-
-For left-folded composition, a tiny change suffices in the `S` case:
-
-< f :^ Z   =~ Id
-< f :^ S n =~ (f :^ n) :. f
-
-which translates to a correspondingly tiny change in the `SuccC` constructor.
-
-< data (:^) :: (* -> *) -> * -> (* -> *) where
-<   ZeroC :: a -> (f :^ Z) a
-<   SuccC :: IsNat n => (f :^ n) (f a) -> (f :^ (S n)) a
-
-The `Functor` and `Applicative` instances are completely unchanged.
-
-Neat, huh?
-
 Experiments
 ===========
 
@@ -117,8 +99,6 @@ Experiments
 < inSuccC2 :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
 <          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
 < inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
-
-Similarly for left-folded composition.
 
 With these definitions, there's a tidier definition for `(<*>)`:
 
