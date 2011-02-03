@@ -14,7 +14,9 @@ Stability   :  experimental
 Simple module for bounded unary natural numbers.
 See <http://conal.net/blog/posts/type-bounded-numbers/>.
 
-> module BNat where
+> module BNat
+>   ( BNat(..),predB,toBNat,fromBNat
+>   ) where
 
 > import TNat
 
@@ -108,8 +110,8 @@ We can also get a description of all natural numbers *greater than* a given one:
 
 In words, the natural numbers greater than two are exactly those of the form $3 + n$, for natural numbers $n$.
 
-Other instances
----------------
+Equality and ordering
+---------------------
 
 Equality and ordering are easily defined, all based on simple properties of numbers:
 
