@@ -96,7 +96,7 @@ Experiments
 <          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
 < inZeroC2 h (ZeroC a ) (ZeroC b ) = ZeroC (h a  b )
 
-< inSuccC2 :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
+< inSuccC2 :: (forall n. IsNat n => f ((f :^ n) a) -> f ((f :^ n) b) -> f ((f :^ n) c))
 <          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
 < inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
 
