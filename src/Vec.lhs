@@ -3,8 +3,6 @@
 > {-# LANGUAGE GADTs, KindSignatures, EmptyDataDecls, ScopedTypeVariables #-}
 > {-# LANGUAGE TypeFamilies, TypeOperators #-}  -- for trie
 
-< {-# LANGUAGE FlexibleInstances, FlexibleContexts #-}  -- For Maxime's version
-
 > {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
@@ -22,14 +20,16 @@ See the following blog posts:
 <http://conal.net/blog/posts/reverse-engineering-length-typed-vectors/>, and
 <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
-> module Vec (Vec(..),headV,tailV,fromList,littleEndianToZ,bigEndianToZ) where
+> module Vec ( Vec(..),headV,tailV,fromList
+>            , littleEndianToZ,bigEndianToZ
+>            , transpose, last, init
+>            ) where
 
-> import Prelude hiding (foldr,foldl)
-> import Control.Applicative (Applicative(..))
+> import Prelude hiding (foldr,foldl,last,init)
+> import Control.Applicative (Applicative(..),(<$>)) -- ,liftA2
 > import Data.Foldable (Foldable(..),foldl',foldr')
+> import Data.Traversable
 > import Control.Arrow (first)
-
-< import Control.Monad (join) -- with Maxime's version
 
 > import FunctorCombo.StrictMemo
 
@@ -71,8 +71,8 @@ Instances
 =========
 
 > instance Functor (Vec n) where
->   fmap _ ZVec     = ZVec
->   fmap f (a :< u) = f a :< fmap f u
+>   fmap _ ZVec      = ZVec
+>   fmap f (a :< as) = f a :< fmap f as
 
 Folding is also straight-forward:
 
@@ -149,18 +149,17 @@ Finally, a `Monad` instance:
 
 First the easy parts: standard definitions in terms of `pure` and `join`:
 
-< instance IsNat n => Monad (Vec n) where
-<   return  = pure
-<   v >>= f = join (fmap f v)
+> instance IsNat n => Monad (Vec n) where
+>   return  = pure
+>   v >>= f = join (fmap f v)
 
 The `join` function on `Vec n` is just like `join` for functions and for streams.
 (Rightly so, considering the principle of [type class morphism]s.)
 It uses diagonalization, and one way to think of vector `join` is that it extracts the diagonal of a square matrix.
 
-< join :: Vec n (Vec n a) -> Vec n a
-< join ZVec      = ZVec
-< join (v :< vs) = headV v :< join (fmap tailV vs)
-
+> join :: Vec n (Vec n a) -> Vec n a
+> join ZVec      = ZVec
+> join (v :< vs) = headV v :< join (fmap tailV vs)
 
 Convert between vectors and lists
 =================================
@@ -290,38 +289,44 @@ The change from right-folding to left-folding is minuscule.
 < trieN (Succ _) f = SuccC (trie (\ as -> trie (f . (:< as))))
 
 
- <!--[
+Some more operations
+====================
 
-[Maxime Henrion suggested](http://conal.net/blog/posts/fixing-lists/comment-page-1/#comment-71660) an alternative to my `Applicative` instance above:
+> transpose :: IsNat n => Vec m (Vec n a) -> Vec n (Vec m a)
 
-< instance Applicative (Vec Z) where
-<   pure _ = ZVec
-<   ZVec <*> ZVec = ZVec
-<
-< instance Applicative (Vec n) => Applicative (Vec (S n)) where
-<   pure a = a :< pure a
-<   (f :< fs) <*> (a :< as) = f a :< (fs <*> as)
+< transpose ZVec      = pure ZVec
+< transpose (v :< vs) = liftA2 (:<) v (transpose vs)
 
-A small drawback of this version is that it requires the GHC language extensions `FlexibleInstances` and `FlexibleContexts`.
-I hadn’t considered splitting the one instance into two. I like the simplicity of this solution, though I suspect the constraint `Applicative (Vec n)` would be cumbersome in practice.
+This simpler definition doesn't check:
 
-Continuing on to `Monad`:
+< transpose = foldr (liftA2 (:<)) (pure ZVec)
 
-< instance Monad (Vec Z) where
-<   return  = pure
-<   v >>= f = joinZ (fmap f v)
-<
-< instance Monad (Vec n) => Monad (Vec (S n)) where
-<   return  = pure
-<   v >>= f = joinS (fmap f v)
+    Occurs check: cannot construct the infinite type: n = S n
+      Expected type: Vec n1 (Vec n a)
+      Inferred type: Vec n1 (Vec (S n) a)
+    In the first argument of `foldr', namely `(liftA2 (:<))'
+    In the expression: foldr (liftA2 (:<)) (pure ZVec)
 
-< joinZ :: Vec Z (Vec Z a) -> Vec Z a
-< joinZ ZVec = ZVec
-<
-< joinS :: Monad (Vec n) => Vec (S n) (Vec (S n) a) -> Vec (S n) a
-< joinS (v :< vs) = headV v :< join (fmap tailV vs)
+From mux
+--------
 
-In this case, I'm using the general `join` function on monads.
-The `Monad` instances would be more elegant and perhaps more efficient if `join` were a method on `Monad` as has been proposed.
+See [mux's stuff](https://bitbucket.org/mumux/stuff/src/1e9537e03f08/Vector.hs).
 
- -->
+> transpose = sequenceA
+
+> instance Traversable (Vec n) where
+>   traverse _ ZVec      = pure ZVec
+>   traverse f (x :< xs) = (:<) <$> f x <*> traverse f xs
+
+> last :: Vec (S n) a -> a
+> last (x :< ZVec)        = x
+> last (_ :< xs@(_ :< _)) = last xs
+
+> init :: Vec (S n) a -> Vec n a
+> init (_ :< ZVec)        = ZVec
+> init (x :< xs@(_ :< _)) = x :< init xs
+
+Mux says
+
+ > ah, from a related bug report: "I wish this was easier to fix. The difficulty is that the type inference engine (which has a sophisticated constraint solver) only sees one equation at a time, and hence can't check exhaustiveness). But the overlap checker (which sees all the equations at once) does not have a sophisticated solver." from spj
+
