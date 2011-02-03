@@ -60,12 +60,6 @@ The following definitions arise from the standard instances for binary functor c
 >   ZeroC f  <*> ZeroC x  = ZeroC (f x)
 >   SuccC fs <*> SuccC xs = SuccC (liftA2 (<*>) fs xs)
 
- <!--
-
->   _ <*> _ = error "ComposeFunctor.<*>: can't happen" {- why needed? -}
-
- -->
-
 > pureN :: Applicative f => Nat n -> a -> (f :^ n) a
 > pureN Zero     a = ZeroC a
 > pureN (Succ _) a = SuccC ((pure . pure) a)
