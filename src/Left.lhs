@@ -1,6 +1,8 @@
  <!-- -*- markdown -*-
 
-> {-# LANGUAGE GADTs, KindSignatures, TypeFamilies, TypeOperators, Rank2Types #-}
+> {-# LANGUAGE GADTs, KindSignatures, TypeFamilies, TypeOperators, Rank2Types
+>            , ScopedTypeVariables
+>   #-}
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
@@ -15,9 +17,19 @@ License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-Left-folding versions of ComposeFunctor and Vec
+Left-folding versions of BNat, Vec, and ComposeFunctor.
+See those modules for more description.
 
-> module Left where
+> module Left
+>   ( -- * Bounded numbers
+>     BNat(..),predB,toBNat,fromBNat
+>     -- * N-ary functor composition
+>   , (:^)(..)
+>     -- * Vectors
+>   , Vec(..),headV,tailV,fromList
+>   , littleEndianToZ,bigEndianToZ
+>   , transpose, last, init
+>   ) where
 
 > import Prelude hiding (foldr,foldl,last,init)
 
@@ -35,6 +47,46 @@ Left-folding versions of ComposeFunctor and Vec
 
  <!-- references -->
  <!-- -->
+
+Bounded numbers
+===============
+
+Swap the constructors.
+No substantive difference here, but I want to define a different `Trie` functor.
+
+> data BNat :: * -> * where
+>   BSucc :: BNat n -> BNat (S n)
+>   BZero ::           BNat (S n)
+
+> predB :: BNat (S n) -> BNat n
+> predB (BSucc n) = n
+
+> fromBNat :: BNat n -> Integer
+> fromBNat BZero     = 0
+> fromBNat (BSucc n) = (succ . fromBNat) n
+
+> toBNat :: forall n. IsNat n => Integer -> Maybe (BNat n)
+> toBNat = loop n where
+>   n = nat :: Nat n
+>   loop :: Nat n' -> Integer -> Maybe (BNat n')
+>   loop Zero      _ = Nothing
+>   loop (Succ _)  0 = Just BZero
+>   loop (Succ n') m = fmap BSucc (loop n' (pred m))
+
+Equality and ordering
+---------------------
+
+> instance Eq (BNat n) where
+>   BZero   == BZero    = True
+>   BSucc m == BSucc m' = m == m'
+>   _       == _        = False
+
+> instance Ord (BNat n) where
+>   BZero   `compare` BZero    = EQ
+>   BSucc m `compare` BSucc m' = m `compare` m'
+>   BZero   `compare` BSucc _  = LT
+>   BSucc _ `compare` BZero    = GT
+
 
 N-ary functor composition
 =========================
@@ -63,16 +115,6 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 > pureN Zero     a = ZeroC a
 > pureN (Succ _) a = SuccC ((pure . pure) a)
 
-
-Bounded numbers
-===============
-
-Swap the constructors.
-No substantive difference here, but I want to define a different `Trie` functor.
-
-> data BNat :: * -> * where
->   BSucc :: BNat n -> BNat (S n)
->   BZero ::           BNat (S n)
 
 Vectors
 =======
@@ -151,6 +193,21 @@ Showing
 
 > instance Show a => Show (Vec n a) where
 >   show v = "fromList " ++ show (toList v)
+
+Vectors as numbers
+------------------
+
+> type Digits k b = Vec k (BNat b)
+
+< type Digits n b = BNat n :->: BNat b
+
+> littleEndianToZ, bigEndianToZ :: forall k b. IsNat b => Digits k b -> Integer
+
+> littleEndianToZ = foldr' (\ x s -> fromBNat x + b * s) 0
+>  where b = natToZ (nat :: Nat b)
+
+> bigEndianToZ    = foldl' (\ s x -> fromBNat x + b * s) 0
+>  where b = natToZ (nat :: Nat b)
 
 Vectors as tries
 ----------------
