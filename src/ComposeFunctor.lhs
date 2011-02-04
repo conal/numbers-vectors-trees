@@ -24,6 +24,7 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
 > import TNat
 > import Nat
+> import ShowF
 
 References:
 
@@ -50,6 +51,12 @@ Writing as a GADT:
 > data (:^) :: (* -> *) -> * -> (* -> *) where
 >   ZeroC :: a -> (f :^ Z) a
 >   SuccC :: IsNat n => f ((f :^ n) a) -> (f :^ (S n)) a
+
+> instance ShowF f => ShowF (f :^ n) where showF = show
+>
+> instance (Show a, ShowF f) => Show ((f :^ n) a) where
+>   show (ZeroC a ) = "(ZeroC "++ show a ++")"
+>   show (SuccC as) = "(SuccC "++ showF as ++")"
 
 Functors compose into functors and applicatives into applicatives.
 (See [*Applicative Programming with Effects*] (section 5) and [*Semantic editor combinators*].)
