@@ -6,9 +6,7 @@
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
-> {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
-> {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
 |
 Module      :  Left
@@ -33,10 +31,11 @@ See those modules for more description.
 
 > import Prelude hiding (foldr,foldl,last,init,and)
 
+> import Data.List (intercalate)
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
 > import Data.Foldable (Foldable(..))
 > import Data.Traversable (Traversable(..))
-> import Data.Foldable (Foldable(..),foldl',foldr',and)
+> import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
 > import Data.Traversable
 > import Control.Arrow (first)
 
@@ -44,6 +43,7 @@ See those modules for more description.
 
 > import TNat
 > import Nat
+> import ShowF
 
  -->
 
@@ -126,6 +126,13 @@ The instance definitions are completely unchanged, since they are based purely o
 > instance Traversable f => Traversable (f :^ n) where
 >   sequenceA (ZeroC qa) = ZeroC <$> qa
 >   sequenceA (SuccC as) = fmap SuccC . sequenceA . fmap sequenceA $ as
+
+> instance (Functor f, Foldable f, Show a) => Show ((f :^ n) a) where
+>   show x = "fromList " ++ show (toList x)
+
+To do: A better `Show` instance, rendering the tree structure.
+I haven't figured out how yet.
+(See `Junk.lhs`.)
 
 Equality and ordering
 ---------------------
@@ -211,14 +218,12 @@ Convert between vectors and lists
 > fromListN (Succ n) (a:as) = fromListN n as :> a
 > fromListN _        _      = error "fromListN: length mismatch"
 
-> toList :: Vec n a -> [a]
-> toList = foldl (flip (:)) []
-
 Showing
 -------
 
 > instance Show a => Show (Vec n a) where
->   show v = "fromList " ++ show (toList v)
+>   -- show v = "fromList " ++ show (toList v)
+>   show v = "("++ intercalate "," (fmap show (reverse (toList v))) ++")"
 
 Equality and ordering
 ---------------------
