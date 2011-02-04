@@ -23,11 +23,13 @@ Library
      TNat
      Nat
      BNat
+     ShowF
      ComposeFunctor
      Vec
      VecNum
      Left
      LeftNum
+     TreeScan
                        
   ghc-options:         -Wall
 
