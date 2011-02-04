@@ -2,7 +2,7 @@
 
 > {-# LANGUAGE GADTs, KindSignatures, EmptyDataDecls, ScopedTypeVariables #-}
 > {-# LANGUAGE TypeFamilies, TypeOperators #-}  -- for trie
-
+>
 > {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
@@ -27,7 +27,7 @@ See the following blog posts:
 
 > import Prelude hiding (foldr,foldl,last,init,and)
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
-> import Data.Foldable (Foldable(..),foldl',foldr',and)
+> import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
 > import Data.Traversable
 > import Control.Arrow (first)
 
@@ -36,6 +36,7 @@ See the following blog posts:
 > import TNat
 > import Nat
 > import BNat
+> import ShowF
 
 > import ComposeFunctor
 
@@ -172,14 +173,13 @@ Convert between vectors and lists
 > fromListN (Succ n) (a:as) = a :< fromListN n as
 > fromListN _        _      = error "fromListN: length mismatch"
 
-> toList :: Vec n a -> [a]
-> toList = foldr (:) []
-
 Showing
 =======
 
 > instance Show a => Show (Vec n a) where
 >   show v = "fromList " ++ show (toList v)
+>
+> instance ShowF (Vec n) where showF = show
 
 Equality and ordering
 =====================
@@ -191,8 +191,15 @@ Standard forms:
 <   (a :< as) == (b :< bs) = a == b && as == bs
 <
 < instance Ord a => Ord (Vec n a) where
-<   ZVec      `compare` ZVec      = EQ
-<   (a :< as) `compare` (b :< bs) = (a `compare` b) `ordThen` (as `compare` bs)
+<   ZVec      `compare` ZVec      = mempty
+<   (a :< as) `compare` (b :< bs) = (a `compare` b) `mempty` (as `compare` bs)
+
+This definition makes use of the handy `Monoid` instance for `Ordering`:
+
+< instance Monoid Ordering where
+<   mempty     = EQ
+<   EQ `mappend` o = o
+<   o `mappend` _  = o
 
 More simply:
 
@@ -226,7 +233,6 @@ An $n$-vector associates a value with every number from $0$ to $n-1$, so it's a 
 > trieB :: Nat n -> (BNat n -> a) -> (BNat n :->: a)
 > trieB Zero     _ = ZVec
 > trieB (Succ m) f = f BZero :< trieB m (f . BSucc)
-
 
 Vectors as numbers
 ==================
@@ -265,6 +271,32 @@ Give it a try:
 
 It's a shame here to map to the unconstrained `Integer` type, since (a) the result must be a natural number, and (b) the result is statically bounded by $b^k$.
 
+ <!--[
+
+Another angle on vectors as numbers
+===================================
+
+ Generate bogus (error-producing) Enum:
+
+ #define INSTANCE_Enum
+
+ Set up the macro parameters:
+
+ #define CONSTRAINTS IsNat n,
+ #define APPLICATIVE (Vec n)
+
+ And generate numeric instances:
+
+ #include "ApplicativeNumeric-inc.hs"
+
+> 
+
+ #include "T1.lhs"
+
+Trying to figure out how to #include code into .lhs files
+
+ ]-->
+ 
 Vector tries
 ============
 
