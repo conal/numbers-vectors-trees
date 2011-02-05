@@ -36,6 +36,8 @@ Stability   :  experimental
 
 [*Programming parallel algorithms*]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.53.5739 "Paper by Guy Blelloch, 1990"
 
+[*Semantic editor combinators*]: http://conal.net/blog/posts/semantic-editor-combinators/ "blog post"
+
 [*Type-bounded numbers*]: http://conal.net/blog/posts/type-bounded-numbers/ "blog post"
 
  <!-- -->
@@ -85,7 +87,7 @@ Start with a functional algorithm exclusive scan based on Guy Blelloch's.
 Use a *left-folded* binary tree to make it easy to access consecutive pairs (even/odd).
 
 Pairing and unpairing
----------------------
+=====================
 
 Start with some convenience for converting between standard pairs and 2-vectors:
 
@@ -106,19 +108,19 @@ To separate out and later recombine the evens and odds:
 > interleave = sequenceA . pair
 
 Scan
-----
+====
 
 > type Unop a = a -> a
 
 > scan :: Num a => Unop (BTree n a)
 > scan (ZeroC _ ) = ZeroC 0
-> scan (SuccC as) = SuccC (interleave (s,s + e))
+> scan (SuccC as) = SuccC (interleave (ss,ss + es))
 >  where
->    (e,o) = uninterleave as
->    s     = scan (e + o)
+>    (es,os) = uninterleave as
+>    ss      = scan (es + os)
 
 Testing
--------
+=======
 
 > mkBTree :: IsNat n => [a] -> BTree n a
 > mkBTree = mk' nat
@@ -157,3 +159,45 @@ I haven't yet worked out a good `Show` instance for `(f :^ n) a`.
 > t4' :: BTree FourT Int
 > t4' = scan t4
 
+
+Understanding in-place algorithms
+=================================
+
+How can we shift from a functional algorithm toward one that updates its argument in place?
+Look again at the first version:
+
+< scan :: Num a => Unop (BTree n a)
+< scan (ZeroC _ ) = ZeroC 0
+< scan (SuccC as) = SuccC (interleave (ss,ss + es))
+<  where
+<    (es,os) = uninterleave as
+<    ss      = scan (es + os)
+
+To derive an in-place algorithm, let's look carefully at what storage can be recycled when.
+Assume that somehow the uninterleaving and interleaving is conceptual only, with no data actually being moved.
+After adding `es` and `os` (evens & odds) to get `ss`, we'll still `es` (for later `ss+es`), but we won't need `os`.
+Also, `ss` and `os` have the same size.
+Together, these properties mean that `ss` can overwrite `os`.
+
+Similarly, `ss+es` has the same length as `es`, and that sum is the last use of `es`, so `ss+es` can overwrite `es`.
+
+
+To leave the evens in place and update the odds, we can simply replace each consecutive `(e,o)` pair with `(e,e+o)`.
+Then perform the recursive `scan` on just the seconds of these pairs, leaving the `evens` untouched.
+The result corresponds to `interleave (es,ss)`, so we'll want to replace each consecutive `(e,s)` pair with `(s,s+e)`.
+
+The modified `SuccC` case:
+
+< scan1 :: Num a => Unop (BTree n a)
+< scan1 (ZeroC _ ) = ZeroC 0
+< scan1 (SuccC as) = SuccC (after . onSeconds scan1 . before)
+<  where
+<    before = fmap (\ (e,o) -> (e,e+o))
+<    after  = fmap (\ (e,s) -> (s,s+e))
+
+< onSeconds :: Unop (BTree n a) -> Unop (BTree n (a,a))
+< onSeconds = undefined
+
+----
+
+I'll use [*Semantic editor combinators*].
