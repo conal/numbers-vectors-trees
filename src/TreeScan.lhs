@@ -1,6 +1,6 @@
  <!-- -*- markdown -*-
 
-> {-# LANGUAGE GADTs, ScopedTypeVariables, TypeOperators #-}
+> {-# LANGUAGE GADTs, ScopedTypeVariables, TypeOperators, Rank2Types #-}
 
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
@@ -101,6 +101,8 @@ A type-preserving [*Semantic editor combinator*]:
 
 > type p :--> q = Unop p -> Unop q
 
+Question: is `(:-->)` an `Arrow` (assuming it were `newtype`-wrapped)?
+
 Start with some convenience for converting between standard pairs and 2-vectors:
 
 > type Pair' a = (a,a)
@@ -111,16 +113,16 @@ Start with some convenience for converting between standard pairs and 2-vectors:
 > unpair :: Pair a -> Pair' a
 > unpair (ZVec :> a :> b) = (a,b)
 
-> inPair' :: Unop (Pair' a) -> Unop (Pair a)
+> inPair' :: Pair' a :--> Pair a
 > inPair' = unpair ~> pair
 
 > inSequenceA :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
->                Unop (f (g a)) -> Unop (g (f a))
+>                f (g a) :--> g (f a)
 > inSequenceA = sequenceA ~> sequenceA
 
 And another, on collections:
 
-> inPairs' :: Functor f => Unop (f (Pair' a)) -> Unop (f (Pair a))
+> inPairs' :: Functor f => f (Pair' a) :--> f (Pair a)
 > inPairs' = fmap unpair ~> fmap pair
 
 
@@ -142,14 +144,11 @@ Better:
 
 And counterparts to `first` and `second`:
 
-> firstP, secondP :: Unop a -> Unop (Pair a)
+> firstP, secondP :: a :--> Pair a
 > firstP  = inPair' . first
 > secondP = inPair' . second
 
 Also handy:
-
-> inUnzip :: Applicative f => Unop (f (a,b)) -> Unop (f a, f b)
-> inUnzip = zip ~> unzip
 
 > zip :: Applicative f => (f a, f b) -> f (a,b)
 > zip = uncurry (liftA2 (,))
@@ -157,11 +156,20 @@ Also handy:
 > unzip :: Functor f => f (a,b) -> (f a, f b)
 > unzip = fmap fst &&& fmap snd
 
+> inZip :: Applicative f => f (a,b) :--> (f a, f b)
+> inZip = zip ~> unzip
+
+> inUnzip :: Applicative f => (f a, f b) :--> f (a,b)
+> inUnzip = unzip ~> zip
+
+> seconds :: Applicative f => f b :--> f (a,b)
+> seconds = inUnzip . second
+
 In particular,
 
-< inUnzip :: Unop (BTree n (Pair' a)) -> Unop (Pair' (BTree n a))
+< inUnzip :: BTree n (Pair' a) :--> Pair' (BTree n a)
 
-< inUnzipT :: Unop (Pair' (BTree n a)) -> Unop (BTree n (Pair a))
+< inUnzipT :: Pair' (BTree n a) :--> BTree n (Pair a)
 < inUnzipT h t = 
 
 Scan
@@ -243,15 +251,27 @@ The result corresponds to `interleave (es,ss)`, so we'll want to replace each co
 
 The modified `SuccC` case:
 
-< scan1 :: Num a => Unop (BTree n a)
-< scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (inPairs' (after . onSeconds scan1 . before))
-<  where
-<    before = fmap (\ (e,o) -> (e,e+o))
-<    after  = fmap (\ (e,s) -> (s,s+e))
+> scan1 :: Num a => Unop (BTree n a)
+> scan1 (ZeroC _ ) = ZeroC 0
+> scan1 (SuccC as) = SuccC (inPairs' (after . seconds scan1 . before) as)
 
-< inSeconds :: Functor a => Unop (f a) -> Unop (f (a,a))
-< inSeconds = 
+> before, after :: (Functor f, Num a) => Unop (f (Pair' a))
+> before = fmap (\ (e,o) -> (e,e+o))
+> after  = fmap (\ (e,s) -> (s,s+e))
 
+Abstract out the general recursion pattern on `BTree`:
 
+> inT :: Unop a -> (forall n. IsNat n => Unop (BTree n (Pair a))) -> (forall n. Unop (BTree n a))
+> inT l _ (ZeroC a ) = ZeroC (l a)
+> inT _ b (SuccC as) = SuccC (b as)
+
+And a slightly more specialized version:
+
+> inT' :: Unop a -> (forall n. IsNat n => Unop (BTree n (Pair' a))) -> (forall n. Unop (BTree n a))
+> inT' l b = inT l (inPairs' b)
+
+We're left with a simple definition:
+
+> scan2 :: Num a => Unop (BTree n a)
+> scan2 = inT' (const 0) (after . seconds scan2 . before)
 
