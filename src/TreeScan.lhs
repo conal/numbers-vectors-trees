@@ -84,7 +84,10 @@ I'd like the general form to work, so I'm trying it first.
 Start with a functional algorithm exclusive scan based on Guy Blelloch's.
 Use a *left-folded* binary tree to make it easy to access consecutive pairs (even/odd).
 
-> type Unop a = a -> a
+Pairing and unpairing
+---------------------
+
+Start with some convenience for converting between standard pairs and 2-vectors:
 
 > type Pair' a = (a,a)
 
@@ -94,13 +97,18 @@ Use a *left-folded* binary tree to make it easy to access consecutive pairs (eve
 > unpair :: Pair a -> Pair' a
 > unpair (ZVec :> a :> b) = (a,b)
 
+To separate out and later recombine the evens and odds:
+
 > uninterleave :: BTree n (Pair a) -> Pair' (BTree n a)
 > uninterleave = unpair . sequenceA
 
 > interleave :: IsNat n => Pair' (BTree n a) -> BTree n (Pair a)
 > interleave = sequenceA . pair
 
+Scan
+----
 
+> type Unop a = a -> a
 
 > scan :: Num a => Unop (BTree n a)
 > scan (ZeroC _ ) = ZeroC 0
@@ -108,6 +116,9 @@ Use a *left-folded* binary tree to make it easy to access consecutive pairs (eve
 >  where
 >    (e,o) = uninterleave as
 >    s     = scan (e + o)
+
+Testing
+-------
 
 > mkBTree :: IsNat n => [a] -> BTree n a
 > mkBTree = mk' nat
