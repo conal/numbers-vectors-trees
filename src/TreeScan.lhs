@@ -16,9 +16,13 @@ Stability   :  experimental
 
 > module TreeScan where
 
-> import Prelude hiding (sum)
+> import Prelude hiding (sum,zip,unzip)
 > import Data.Foldable (sum,toList)
-> import Data.Traversable (sequenceA)
+> import Data.Traversable (Traversable(..))
+> import Control.Applicative (Applicative(..),liftA2)
+> import Control.Arrow (first,second,(&&&))
+
+> import Control.Compose ((~>))
 
 > import FunctorCombo.StrictMemo
 
@@ -89,6 +93,14 @@ Use a *left-folded* binary tree to make it easy to access consecutive pairs (eve
 Pairing and unpairing
 =====================
 
+Type-preserving editor:
+
+> type Unop a = a -> a
+
+A type-preserving [*Semantic editor combinator*]:
+
+> type p :--> q = Unop p -> Unop q
+
 Start with some convenience for converting between standard pairs and 2-vectors:
 
 > type Pair' a = (a,a)
@@ -99,6 +111,19 @@ Start with some convenience for converting between standard pairs and 2-vectors:
 > unpair :: Pair a -> Pair' a
 > unpair (ZVec :> a :> b) = (a,b)
 
+> inPair' :: Unop (Pair' a) -> Unop (Pair a)
+> inPair' = unpair ~> pair
+
+> inSequenceA :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
+>                Unop (f (g a)) -> Unop (g (f a))
+> inSequenceA = sequenceA ~> sequenceA
+
+And another, on collections:
+
+> inPairs' :: Functor f => Unop (f (Pair' a)) -> Unop (f (Pair a))
+> inPairs' = fmap unpair ~> fmap pair
+
+
 To separate out and later recombine the evens and odds:
 
 > uninterleave :: BTree n (Pair a) -> Pair' (BTree n a)
@@ -107,10 +132,40 @@ To separate out and later recombine the evens and odds:
 > interleave :: IsNat n => Pair' (BTree n a) -> BTree n (Pair a)
 > interleave = sequenceA . pair
 
+< inUninterleave :: IsNat n => Pair' (BTree n a) :--> BTree n (Pair a)
+< inUninterleave = uninterleave ~> interleave
+
+Better:
+
+> inUninterleave :: IsNat n => Pair' (BTree n a) :--> BTree n (Pair a)
+> inUninterleave = inSequenceA . inPair'
+
+And counterparts to `first` and `second`:
+
+> firstP, secondP :: Unop a -> Unop (Pair a)
+> firstP  = inPair' . first
+> secondP = inPair' . second
+
+Also handy:
+
+> inUnzip :: Applicative f => Unop (f (a,b)) -> Unop (f a, f b)
+> inUnzip = zip ~> unzip
+
+> zip :: Applicative f => (f a, f b) -> f (a,b)
+> zip = uncurry (liftA2 (,))
+
+> unzip :: Functor f => f (a,b) -> (f a, f b)
+> unzip = fmap fst &&& fmap snd
+
+In particular,
+
+< inUnzip :: Unop (BTree n (Pair' a)) -> Unop (Pair' (BTree n a))
+
+< inUnzipT :: Unop (Pair' (BTree n a)) -> Unop (BTree n (Pair a))
+< inUnzipT h t = 
+
 Scan
 ====
-
-> type Unop a = a -> a
 
 > scan :: Num a => Unop (BTree n a)
 > scan (ZeroC _ ) = ZeroC 0
@@ -190,14 +245,13 @@ The modified `SuccC` case:
 
 < scan1 :: Num a => Unop (BTree n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (after . onSeconds scan1 . before)
+< scan1 (SuccC as) = SuccC (inPairs' (after . onSeconds scan1 . before))
 <  where
 <    before = fmap (\ (e,o) -> (e,e+o))
 <    after  = fmap (\ (e,s) -> (s,s+e))
 
-< onSeconds :: Unop (BTree n a) -> Unop (BTree n (a,a))
-< onSeconds = undefined
+< inSeconds :: Functor a => Unop (f a) -> Unop (f (a,a))
+< inSeconds = 
 
-----
 
-I'll use [*Semantic editor combinators*].
+
