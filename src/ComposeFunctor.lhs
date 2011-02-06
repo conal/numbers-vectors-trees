@@ -55,7 +55,7 @@ Writing as a GADT:
 > unZeroC :: (f :^ Z) a -> a
 > unZeroC (ZeroC a) = a
 
-> unSuccC :: IsNat n => (f :^ (S n)) a -> f ((f :^ n) a)
+> unSuccC :: (f :^ (S n)) a -> f ((f :^ n) a)
 > unSuccC (SuccC fsa) = fsa
 
 

@@ -107,7 +107,7 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 > unZeroC :: (f :^ Z) a -> a
 > unZeroC (ZeroC a) = a
 
-> unSuccC :: IsNat n => (f :^ (S n)) a -> (f :^ n) (f a)
+> unSuccC :: (f :^ (S n)) a -> (f :^ n) (f a)
 > unSuccC (SuccC fsa) = fsa
 
 The instance definitions are completely unchanged, since they are based purely on `Id` and functor composition.
