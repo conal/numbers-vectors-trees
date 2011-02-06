@@ -22,7 +22,7 @@ See those modules for more description.
 >   ( -- * Bounded numbers
 >     BNat(..),predB,toBNat,fromBNat
 >     -- * N-ary functor composition
->   , (:^)(..)
+>   , (:^)(..),unZeroC,unSuccC
 >     -- * Vectors
 >   , Vec(..),headV,tailV,fromList
 >   , littleEndianToZ,bigEndianToZ
@@ -103,6 +103,12 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 > data (:^) :: (* -> *) -> * -> (* -> *) where
 >   ZeroC :: a -> (f :^ Z) a
 >   SuccC :: IsNat n => (f :^ n) (f a) -> (f :^ (S n)) a
+
+> unZeroC :: (f :^ Z) a -> a
+> unZeroC (ZeroC a) = a
+
+> unSuccC :: IsNat n => (f :^ (S n)) a -> (f :^ n) (f a)
+> unSuccC (SuccC fsa) = fsa
 
 The instance definitions are completely unchanged, since they are based purely on `Id` and functor composition.
 

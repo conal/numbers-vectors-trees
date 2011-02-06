@@ -14,7 +14,7 @@ Stability   :  experimental
 N-ary functor composition.
 See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
-> module ComposeFunctor ((:^)(..)) where
+> module ComposeFunctor ((:^)(..),unZeroC,unSuccC) where
 
 > import Prelude hiding (and)
 
@@ -51,6 +51,13 @@ Writing as a GADT:
 > data (:^) :: (* -> *) -> * -> (* -> *) where
 >   ZeroC :: a -> (f :^ Z) a
 >   SuccC :: IsNat n => f ((f :^ n) a) -> (f :^ (S n)) a
+
+> unZeroC :: (f :^ Z) a -> a
+> unZeroC (ZeroC a) = a
+
+> unSuccC :: IsNat n => (f :^ (S n)) a -> f ((f :^ n) a)
+> unSuccC (SuccC fsa) = fsa
+
 
 > instance ShowF f => ShowF (f :^ n) where showF = show
 >
