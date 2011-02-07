@@ -101,6 +101,12 @@ Alternatively, build `pureV` out of `units`, which makes vectors consisting enti
 > pureV :: IsNat n => a -> Vec n a
 > pureV a = fmap (const a) units
 
+or
+
+< pure = (<$ units)
+
+Thanks to Eyal Lotem for [suggesting this rewriting](http://conal.net/blog/posts/doing-more-with-length-typed-vectors/comment-page-1/#comment-73663).
+
 > units :: IsNat n => Vec n ()
 > units = unitsN nat
 
