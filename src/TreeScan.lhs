@@ -22,11 +22,8 @@ Stability   :  experimental
 > import Control.Applicative (Applicative(..),liftA2)
 > import Control.Arrow (first,second,(&&&))
 
-> import Control.Compose ((~>))
-
 > import FunctorCombo.StrictMemo
 
-> import TNat
 > import Nat
 
 > import Left
@@ -143,6 +140,15 @@ Start with some convenience for converting between standard pairs and 2-vectors:
 
 > inPair' :: Pair' a :-+> Pair a
 > inPair' = unpair ~> pair
+
+> infixr 1 ~>
+> (~>) :: (a' -> a) -> (b -> b') -> ((a -> b) -> (a' -> b'))
+> (f ~> h) g = h . g . f
+
+More generally,
+
+< (~>) :: Category (-->) =>
+<         (a' --> a) -> (b --> b') -> ((a --> b) -> (a' --> b'))
 
 > inSequenceA :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
 >                f (g a) :-+> g (f a)
@@ -313,3 +319,79 @@ We're left with a simple definition:
 
 < scan2 = inT' (const 0) (after . seconds scan2 . before)
 
+This example illustrates an approach to synthesizing in-place algorithms.
+Express the algorithms in terms of `Unop` pipelines.
+For parallelism, use `fmap`.
+
+Next I want to eliminate `seconds`, with its implied unzipping & zipping.
+
+Flattening the recursion
+========================
+
+Expand `scan2` once in the context of its own definition:
+
+< seconds (inT' (const 0) (after . seconds scan2 . before))
+
+
+< seconds (inT (const 0) (inPairs' (after . seconds scan2 . before)))
+
+Consider the two cases of `inT`
+
+< inT l _ (ZeroC a ) = (ZeroC . l) a
+< inT _ b (SuccC as) = (SuccC . b) as
+
+< seconds = inUnzip . second
+
+<   seconds (inT (const 0) (...)) (ZeroC (a,b) )
+
+< == inUnzip (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
+
+< == (zip . second scan . unzip) (inT (const 0) (...)) (ZeroC (a,b) )
+
+< == zip (second scan (unzip (inT (const 0) (...)) (ZeroC (a,b) )
+
+
+
+< inT (seconds . const 0) (seconds . inPairs' (after . seconds scan2 . before))
+
+
+Hm.
+Back up to the definition of seconds:
+
+< seconds :: Applicative f => f b :-+> f (a,b)
+< seconds = inUnzip . second
+
+< inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
+< inUnzip = unzip ~> zip
+
+I suspect there's a nice law to rewrite `seconds (fmap f)`
+
+< seconds . fmap == fmap . second
+
+< secondsFmap :: Applicative f => b :-+> f (a,b)
+< secondsFmap = fmap . second
+
+<   seconds . seconds . fmap
+< == seconds . fmap . second
+< == fmap . second . second
+
+Maybe think about trees of trees instead of trees of pairs.
+
+< unB :: T (S n) (T m a) -> T n (T (S m)) a
+< unB (SuccB t) = ...
+
+Hm. I think I want $1+m$, but I have $m+1$.
+This operation would be much easier with right-folded composition.
+
+< SuccC :: T (S n) (T m a) -> T n (Pair (T m a))
+
+< bubble :: (f :^ m) (f a) -> (f :^ S m) a
+< bubble (ZeroC fa ) = SuccC (ZeroC fa)
+
+fa :: f a
+ZeroC fa :: T Z (f a)
+SuccC (ZeroC fa) :: T (S Z) a
+
+fas :: T (S m) (f (f a))
+
+Oh! Use two different tree types.
