@@ -41,7 +41,6 @@ See those modules for more description.
 
 > import FunctorCombo.StrictMemo
 
-> import TNat
 > import Nat
 > import ShowF
 

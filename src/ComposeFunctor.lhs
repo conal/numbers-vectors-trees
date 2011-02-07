@@ -22,7 +22,6 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 > import Data.Foldable (Foldable(..),and)
 > import Data.Traversable (Traversable(..))
 
-> import TNat
 > import Nat
 > import ShowF
 

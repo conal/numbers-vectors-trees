@@ -16,6 +16,7 @@ See <http://conal.net/blog/posts/type-bounded-numbers/>.
 
 > module BNat
 >   ( BNat(..),predB,toBNat,fromBNat
+>   , module TNat
 >   ) where
 
 > import TNat

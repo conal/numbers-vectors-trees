@@ -12,7 +12,7 @@ Stability   :  experimental
 
 Simple module for typed natural numbers
 
-> module Nat where
+> module Nat (module TNat, module Nat) where
 
 > import TNat
 

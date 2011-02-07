@@ -33,7 +33,6 @@ See the following blog posts:
 
 > import FunctorCombo.StrictMemo
 
-> import TNat
 > import Nat
 > import BNat
 > import ShowF
