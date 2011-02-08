@@ -1,10 +1,7 @@
  <!-- -*- markdown -*-
 
-< {-# LANGUAGE #-}
-
+> {-# LANGUAGE TypeOperators #-}
 > {-# OPTIONS_GHC -Wall #-}
-
-> {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
 
 |
 Module      :  SEC
@@ -17,40 +14,39 @@ Semantic editor combinators
 
 > module SEC ((~>), Unop, (:-+>), first, second, result) where
 
+> import Prelude () -- or hiding ((.))
+> import Control.Category (Category(..))
 > import Control.Arrow (first,second)
 
  -->
 
  <!-- references -->
+
+[*Semantic editor combinators*]: http://conal.net/blog/posts/semantic-editor-combinators/ "blog post"
+
  <!-- -->
 
 
 Some semantic editor combinators
 ================================
 
-Handy:
+Type-preserving editor:
+
+> type Unop a = a -> a
+
+A type-preserving [*Semantic editor combinator*] (SEC):
+
+> type p :-+> q = Unop p -> Unop q
+
+Handy for SEC definitions:
 
 > infixr 1 ~>
-> (~>) :: (a' -> a) -> (b -> b') -> ((a -> b) -> (a' -> b'))
+> (~>) :: Category (-->) =>
+>         (a' --> a) -> (b --> b') -> ((a --> b) -> (a' --> b'))
 > (f ~> h) g = h . g . f
-
-More generally,
-
-< (~>) :: Category (-->) =>
-<         (a' --> a) -> (b --> b') -> ((a --> b) -> (a' --> b'))
 
 Like `second` but on function types:
 
 > result :: (b -> b') -> ((a -> b) -> (a -> b'))
 > result = (.)
-
-Type-preserving editor:
-
-> type Unop a = a -> a
-
-A type-preserving [*Semantic editor combinator*]:
-
-> type p :-+> q = Unop p -> Unop q
-
-
 
