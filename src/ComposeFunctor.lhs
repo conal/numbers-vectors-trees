@@ -14,7 +14,7 @@ Stability   :  experimental
 N-ary functor composition.
 See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
-> module ComposeFunctor ((:^)(..),unZeroC,unSuccC,inC) where
+> module ComposeFunctor ((:^)(..),unZeroC,unSuccC,inC,inC2) where
 
 > import Prelude hiding (and)
 
@@ -24,7 +24,6 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
 > import Nat
 > import ShowF
-> import SEC (Unop)
 
 References:
 
@@ -58,11 +57,19 @@ Writing as a GADT:
 > unSuccC :: (f :^ (S n)) a -> f ((f :^ n) a)
 > unSuccC (SuccC fsa) = fsa
 
-> inC :: Unop a
->     -> (forall n. IsNat n => Unop (f ((f :^ n) a)))
->     -> (forall n. Unop ((f :^ n) a))
-> inC l _ (ZeroC a ) = (ZeroC . l) a
-> inC _ b (SuccC as) = (SuccC . b) as
+Operate inside the representation of `f :^ n`:
+
+> inC :: (a -> b)
+>     -> (forall n. IsNat n => f ((f :^ n) a) -> f ((f :^ n) b))
+>     -> (forall n. (f :^ n) a -> (f :^ n) b)
+> inC l _ (ZeroC a ) = (ZeroC (l a ))
+> inC _ b (SuccC as) = (SuccC (b as))
+
+> inC2 :: (a -> b -> c)
+>      -> (forall n. IsNat n => f ((f :^ n) a) -> f ((f :^ n) b) -> f ((f :^ n) c))
+>      -> (forall n. (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+> inC2 l _ (ZeroC a ) (ZeroC b ) = ZeroC (l a  b )
+> inC2 _ b (SuccC as) (SuccC bs) = SuccC (b as bs)
 
 
 > instance ShowF f => ShowF (f :^ n) where showF = show
@@ -76,8 +83,7 @@ Functors compose into functors and applicatives into applicatives.
 The following definitions arise from the standard instances for binary functor composition.
 
 > instance Functor f => Functor (f :^ n) where
->   fmap h (ZeroC a)  = ZeroC (h a)
->   fmap h (SuccC fs) = SuccC ((fmap.fmap) h fs)
+>   fmap h = inC h ((fmap.fmap) h)
 
 > instance (IsNat n, Applicative f) => Applicative (f :^ n) where
 >   pure = pureN nat
