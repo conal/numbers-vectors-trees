@@ -79,34 +79,6 @@ I'd like the general form to work, so I'm trying it first.
 Start with a functional algorithm exclusive scan based on Guy Blelloch's.
 Use a *left-folded* binary tree to make it easy to access consecutive pairs (even/odd).
 
-Abstract out the general recursion pattern on `T`:
-
-> btree :: (a -> c) -> (forall n. IsNat n => T n (Pair a) -> c)
->       -> (forall n. T n a -> c)
-> btree l _ (ZeroC a ) = l a
-> btree _ b (SuccC as) = b as
-
-Specialize to type-preserving tree transformations (tree endomorphisms):
-
-> inT :: Unop a -> (forall n. IsNat n => Unop (T n (Pair a)))
->     -> (forall n. Unop (T n a))
-> inT l _ (ZeroC a ) = (ZeroC . l) a
-> inT _ b (SuccC as) = (SuccC . b) as
-
-I'd rather write
-
-< inT l b = btree (ZeroC . l) (SuccC . b)
-
-but GHC 6.12.3 gives me this error message:
-
-    Couldn't match expected type `Z' against inferred type `S n'
-      Expected type: (:^) Pair Z a
-      Inferred type: (:^) Pair (S n) a
-    In the second argument of `btree', namely `(SuccC . b)'
-    In the expression: btree (ZeroC . l) (SuccC . b)
-
-I think the conflict here is that `c` must match `Z` in the first argument of `btree` but `S n` in the second.
-
 Scan
 ====
 
@@ -126,10 +98,10 @@ Factor out the container inversions:
 <    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
 
-And then use `inT` for the tree transformation pattern:
+And then use `inC` for the tree transformation pattern:
 
 > scan1 :: Num a => Unop (T n a)
-> scan1 = inT (const 0) (inInvert h)
+> scan1 = inC (const 0) (inInvert h)
 >  where
 >    h (es :# os) = (ss :# ss + es)
 >     where ss = scan1 (es + os)
@@ -165,13 +137,13 @@ I haven't yet worked out a good `Show` instance for `(f :^ n) a`.
 
 > t0 :: T Z Int
 > t0 = mkT [3]
-
+>
 > t1 :: T OneT Int
 > t1 = mkT [3,4]
-
+>
 > t4 :: T FourT Int
 > t4 = mkT [1..16]
-
+>
 > t4' :: T FourT Int
 > t4' = scan1 t4
 
@@ -183,7 +155,7 @@ How can we shift from a functional algorithm toward one that updates its argumen
 Look again at the functional version:
 
 < scan1 :: Num a => Unop (T n a)
-< scan1 = inT (const 0) (inInvert h)
+< scan1 = inC (const 0) (inInvert h)
 <  where
 <    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
@@ -203,7 +175,7 @@ The result corresponds to `invert (es :# ss)`, so we'll want to replace each con
 The modified `SuccC` case:
 
 > scan2 :: Num a => Unop (T n a)
-> scan2 = inT (const 0) (after . seconds scan2 . before)
+> scan2 = inC (const 0) (after . seconds scan2 . before)
 
 > before, after :: (Functor f, Num a) => Unop (f (Pair a))
 > before = fmap (\ (e :# o) -> (e :# e+o))
@@ -220,26 +192,42 @@ Flattening the recursion
 
 Expand `scan2` once in the context of its own definition:
 
-< seconds (inT (const 0) (after . seconds scan2 . before))
+< seconds (inC (const 0) (after . seconds scan2 . before))
 
 < seconds = inInvert . second
 
-Consider the two cases of `inT`
+<   seconds scan
+< == inInvert (second scan)
+< == invert . second scan . invert
 
-< inT l _ (ZeroC a ) = (ZeroC . l) a
-< inT _ b (SuccC as) = (SuccC . b) as
+<   (seconds scan) t
+< == invert (second scan (invert t))
 
-<   seconds (inT (const 0) (...)) (ZeroC (a,b) )
+Consider the two cases of `inC`
 
-< == inInvert (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
+< inC l _ (ZeroC a ) = (ZeroC . l) a
+< inC _ b (SuccC as) = (SuccC . b) as
 
-< == (invert . second scan . invert) (inT (const 0) (...)) (ZeroC (a,b) )
+< seconds (inC (const 0) (...)) (ZeroC (a,b))
+< (inInvert . second) (inC (const 0) (...)) (ZeroC (a,b))
+< inInvert (second (inC (const 0) (...))) (ZeroC (a,b))
+< invert (second (inC (const 0) (...)) (invert (ZeroC (a,b))))
+< invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
+< invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
+< invert (ZeroC a,0)
 
-< == invert (second scan (invert (inT (const 0) (...)) (ZeroC (a,b) )
+< seconds (inC (const 0) (...)) (SuccC t)
+< (inInvert . second) (inC (const 0) (...)) (SuccC t)
+< inInvert (second (inC (const 0) (...))) (SuccC t)
+< invert (second (inC (const 0) (...)) (invert (SuccC t)))
+<
+< invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
+< invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
+< invert (ZeroC a,0)
 
 
 
-< inT (seconds . const 0) (seconds . after . seconds scan2 . before)
+< inC (seconds . const 0) (seconds . after . seconds scan2 . before)
 
 
 Hm.
@@ -296,11 +284,11 @@ Other passes have to pull these values from non-adjacent tree/array elements and
 To transform the right-most element:
 
 > delveR :: a :-+> T m a
-> delveR f = inT f ((delveR . second) f)
+> delveR f = inC f ((delveR . second) f)
 
 For a right-folded tree, I think the definition becomes
 
-< delveR f = inT f ((second . delveR) f)
+< delveR f = inC f ((second . delveR) f)
 
 I don't want the right-most element or right-most pair.
 I want the right-most values in the two subtrees.
