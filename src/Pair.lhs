@@ -15,7 +15,7 @@ Simple 'Bit' type & 'Pair' functor
 > module Pair
 >   ( Bit, Pair(..)
 >   , pair, unpair, inPair
->   , firstP, secondP, firsts, seconds
+>   , first, second, firsts, seconds, (***)
 >   )
 >     where
 
@@ -23,6 +23,7 @@ Simple 'Bit' type & 'Pair' functor
 > import Control.Applicative (Applicative(..),(<$>))
 > import Data.Foldable (Foldable(..))
 > import Data.Traversable
+> import qualified Control.Arrow as Ar (first,second)
 
 > import FunctorCombo.StrictMemo (HasTrie(..))
 
@@ -71,15 +72,20 @@ I might like to use use `Bool` instead of `Bit`, and replace the current `HasTri
 > inPair :: (a,a) :-+> Pair a
 > inPair = unpair ~> pair
 
-Like `first` and `second` but for `Pair`:
+Like the `Arrow` `first` and `second` but for `Pair`:
 
-> firstP, secondP :: a :-+> Pair a
-> firstP  = inPair . first
-> secondP = inPair . second
+> first, second :: a :-+> Pair a
+> first  = inPair . Ar.first
+> second = inPair . Ar.second
 
 Also handy:
 
 > firsts,seconds :: (Traversable f, Applicative f) => f b :-+> f (Pair b)
-> firsts  = inInvertF . firstP
-> seconds = inInvertF . secondP
+> firsts  = inInvert . first
+> seconds = inInvert . second
+
+Like `Arrow` `(***)`, but for `Pair`
+
+> (***) :: Unop a -> Unop a -> Unop (Pair a)
+> (f *** g) (a :# b) = (f a :# g b)
 

@@ -12,13 +12,12 @@ Stability   :  experimental
 
 Semantic editor combinators
 
-> module SEC ((~>), Unop, (:-+>), first, second, result, invertF, inInvertF) where
+> module SEC ((~>), Unop, (:-+>), invert, inInvert) where
 
 > import Prelude () -- or hiding ((.))
 > import Control.Applicative (Applicative(..))
 > import Data.Traversable
 > import Control.Category (Category(..))
-> import Control.Arrow (first,second)
 
  -->
 
@@ -47,17 +46,20 @@ Handy for SEC definitions:
 >         (a' --> a) -> (b --> b') -> ((a --> b) -> (a' --> b'))
 > (f ~> h) g = h . g . f
 
+ <!--[
 Like `second` but on function types:
 
-> result :: (b -> b') -> ((a -> b) -> (a -> b'))
-> result = (.)
+< result :: (b -> b') -> ((a -> b) -> (a -> b'))
+< result = (.)
+
+ ]-->
 
 A synonym 
 
-> invertF :: (Traversable f, Applicative g) => f (g a) -> g (f a)
-> invertF = sequenceA
+> invert :: (Traversable f, Applicative g) => f (g a) -> g (f a)
+> invert = sequenceA
 
-> inInvertF :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
->              f (g a) :-+> g (f a)
-> inInvertF = invertF ~> invertF
+> inInvert :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
+>             f (g a) :-+> g (f a)
+> inInvert = invert ~> invert
 

@@ -3,7 +3,6 @@
 > {-# LANGUAGE GADTs, ScopedTypeVariables, TypeOperators, Rank2Types #-}
 
 > {-# OPTIONS_GHC -Wall #-}
-> {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
 
@@ -17,17 +16,12 @@ Stability   :  experimental
 > module TreeScan where
 
 > import Prelude hiding (sum,zip,unzip)
-> import Data.Foldable (sum,toList)
-> import Data.Traversable (Traversable(..))
-> import Control.Applicative (Applicative(..),liftA2)
-> import Control.Arrow (first,second,(&&&))
 
 > import FunctorCombo.StrictMemo
 
 > import Nat
-
 > import Left
-> import LeftNum
+> import LeftNum ()
 > import Pair
 > import SEC
 
@@ -118,16 +112,16 @@ Scan
 
 < scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (invertF (ss :# ss + es))
+< scan1 (SuccC as) = SuccC (invert (ss :# ss + es))
 <  where
-<    (es :# os) = invertF as
+<    (es :# os) = invert as
 <    ss         = scan1 (es + os)
 
 Factor out the container inversions:
 
 < scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (inInvertF h as)
+< scan1 (SuccC as) = SuccC (inInvert h as)
 <  where
 <    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
@@ -135,7 +129,7 @@ Factor out the container inversions:
 And then use `inT` for the tree transformation pattern:
 
 > scan1 :: Num a => Unop (T n a)
-> scan1 = inT (const 0) (inInvertF h)
+> scan1 = inT (const 0) (inInvert h)
 >  where
 >    h (es :# os) = (ss :# ss + es)
 >     where ss = scan1 (es + os)
@@ -189,7 +183,7 @@ How can we shift from a functional algorithm toward one that updates its argumen
 Look again at the functional version:
 
 < scan1 :: Num a => Unop (T n a)
-< scan1 = inT (const 0) (inInvertF h)
+< scan1 = inT (const 0) (inInvert h)
 <  where
 <    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
@@ -204,7 +198,7 @@ Similarly, `ss+es` has the same length as `es`, and that sum is the last use of 
 
 To leave the evens in place and update the odds, we can simply replace each consecutive `(e,o)` pair with `(e,e+o)`.
 Then perform the recursive scan on just the seconds of these pairs, leaving the `evens` untouched.
-The result corresponds to `invertF (es :# ss)`, so we'll want to replace each consecutive `(e :# s)` pair with `(s :# s+e)`.
+The result corresponds to `invert (es :# ss)`, so we'll want to replace each consecutive `(e :# s)` pair with `(s :# s+e)`.
 
 The modified `SuccC` case:
 
@@ -226,24 +220,22 @@ Flattening the recursion
 
 Expand `scan2` once in the context of its own definition:
 
-< seconds (inT' (const 0) (after . seconds scan2 . before))
-
 < seconds (inT (const 0) (after . seconds scan2 . before))
+
+< seconds = inInvert . second
 
 Consider the two cases of `inT`
 
 < inT l _ (ZeroC a ) = (ZeroC . l) a
 < inT _ b (SuccC as) = (SuccC . b) as
 
-< seconds = inUnzip . second
-
 <   seconds (inT (const 0) (...)) (ZeroC (a,b) )
 
-< == inUnzip (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
+< == inInvert (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
 
-< == (zip . second scan . unzip) (inT (const 0) (...)) (ZeroC (a,b) )
+< == (invert . second scan . invert) (inT (const 0) (...)) (ZeroC (a,b) )
 
-< == zip (second scan (unzip (inT (const 0) (...)) (ZeroC (a,b) )
+< == invert (second scan (invert (inT (const 0) (...)) (ZeroC (a,b) )
 
 
 
@@ -254,10 +246,10 @@ Hm.
 Back up to the definition of seconds:
 
 < seconds :: Applicative f => f b :-+> f (a,b)
-< seconds = inUnzip . second
+< seconds = inInvert . second
 
-< inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
-< inUnzip = unzip ~> zip
+< inInvert :: Applicative f => (f a, f b) :-+> f (a,b)
+< inInvert = invert ~> invert
 
 I suspect there's a nice law to rewrite `seconds (fmap f)`
 
@@ -290,3 +282,35 @@ SuccC (ZeroC fa) :: T (S Z) a
 fas :: T (S m) (f (f a))
 
 Oh! Use two different tree types.
+
+Delving into subtrees
+=====================
+
+Every pass maps over pairs of elements and does a simple addition.
+In the downsweep (second) phase of exclusive scan, we also swap.
+
+In the initial pass of the upsweep phase and the final pass of the downsweep phase, the pairs are already adjacent.
+With a left-folded tree, it's easy to get to those pairs.
+Other passes have to pull these values from non-adjacent tree/array elements and put the results back.
+
+To transform the right-most element:
+
+> delveR :: a :-+> T m a
+> delveR f = inT f ((delveR . second) f)
+
+For a right-folded tree, I think the definition becomes
+
+< delveR f = inT f ((second . delveR) f)
+
+I don't want the right-most element or right-most pair.
+I want the right-most values in the two subtrees.
+
+< (a,b) --> f (a,b)
+< ((a,b),(c,d)) --> ((a,b'),(c,d')) where (b',d') = f (b,d)
+
+< ((a,b),(c,d))
+< ((a,c),(b,d))
+< ((a,c),(b',d'))
+< ((a,b'),(c,d'))
+
+
