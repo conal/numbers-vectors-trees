@@ -64,14 +64,14 @@ A bit can represented as the type of natural numbers less than two, as in [*Type
 
 > type Bits  n = Vec n Bit
 >
-> type BTree n = Trie (Bits n)
+> type T n = Trie (Bits n)
 
 Equivalently,
 
-< type BTree n = Trie (Bits n)
-<              = Trie (Vec n Bit)
-<              = Trie Bit :^ n
-<              = Pair :^ n
+< type T n = Trie (Bits n)
+<          = Trie (Vec n Bit)
+<          = Trie Bit :^ n
+<          = Pair :^ n
 
 where `f :^ n` is the $n$-ary composition of the functor `f` with itself.
 
@@ -85,17 +85,17 @@ I'd like the general form to work, so I'm trying it first.
 Start with a functional algorithm exclusive scan based on Guy Blelloch's.
 Use a *left-folded* binary tree to make it easy to access consecutive pairs (even/odd).
 
-Abstract out the general recursion pattern on `BTree`:
+Abstract out the general recursion pattern on `T`:
 
-> btree :: (a -> c) -> (forall n. IsNat n => BTree n (Pair a) -> c)
->       -> (forall n. BTree n a -> c)
+> btree :: (a -> c) -> (forall n. IsNat n => T n (Pair a) -> c)
+>       -> (forall n. T n a -> c)
 > btree l _ (ZeroC a ) = l a
 > btree _ b (SuccC as) = b as
 
 Specialize to type-preserving tree transformations (tree endomorphisms):
 
-> inT :: Unop a -> (forall n. IsNat n => Unop (BTree n (Pair a)))
->     -> (forall n. Unop (BTree n a))
+> inT :: Unop a -> (forall n. IsNat n => Unop (T n (Pair a)))
+>     -> (forall n. Unop (T n a))
 > inT l _ (ZeroC a ) = (ZeroC . l) a
 > inT _ b (SuccC as) = (SuccC . b) as
 
@@ -116,7 +116,7 @@ I think the conflict here is that `c` must match `Z` in the first argument of `b
 Scan
 ====
 
-< scan1 :: Num a => Unop (BTree n a)
+< scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
 < scan1 (SuccC as) = SuccC (invertF (ss :# ss + es))
 <  where
@@ -125,7 +125,7 @@ Scan
 
 Factor out the container inversions:
 
-< scan1 :: Num a => Unop (BTree n a)
+< scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
 < scan1 (SuccC as) = SuccC (inInvertF h as)
 <  where
@@ -134,7 +134,7 @@ Factor out the container inversions:
 
 And then use `inT` for the tree transformation pattern:
 
-> scan1 :: Num a => Unop (BTree n a)
+> scan1 :: Num a => Unop (T n a)
 > scan1 = inT (const 0) (inInvertF h)
 >  where
 >    h (es :# os) = (ss :# ss + es)
@@ -144,10 +144,10 @@ And then use `inT` for the tree transformation pattern:
 Testing
 =======
 
-> mkBTree :: IsNat n => [a] -> BTree n a
-> mkBTree = mk' nat
+> mkT :: IsNat n => [a] -> T n a
+> mkT = mk' nat
 >  where
->    mk' :: Nat m -> [a] -> BTree m a
+>    mk' :: Nat m -> [a] -> T m a
 >    mk' _ []        = error "mk': empty list"
 >    mk' Zero [a]    = ZeroC a
 >    mk' (Succ m) xs = SuccC (mk' m (pairs xs))
@@ -162,23 +162,23 @@ The utility function `pairs` coalesces adjacent list elements into explicit pair
 Use `printT` to try out the following examples.
 I haven't yet worked out a good `Show` instance for `(f :^ n) a`.
 
-> showT :: Show a => BTree n a -> String
+> showT :: Show a => T n a -> String
 > showT (ZeroC a ) = show  a
 > showT (SuccC as) = showT (fmap unpair as)
 
-> printT :: Show a => BTree n a -> IO ()
+> printT :: Show a => T n a -> IO ()
 > printT = putStrLn . showT
 
-> t0 :: BTree Z Int
-> t0 = mkBTree [3]
+> t0 :: T Z Int
+> t0 = mkT [3]
 
-> t1 :: BTree OneT Int
-> t1 = mkBTree [3,4]
+> t1 :: T OneT Int
+> t1 = mkT [3,4]
 
-> t4 :: BTree FourT Int
-> t4 = mkBTree [1..16]
+> t4 :: T FourT Int
+> t4 = mkT [1..16]
 
-> t4' :: BTree FourT Int
+> t4' :: T FourT Int
 > t4' = scan1 t4
 
 
@@ -188,7 +188,7 @@ Understanding in-place algorithms
 How can we shift from a functional algorithm toward one that updates its argument in place?
 Look again at the functional version:
 
-< scan1 :: Num a => Unop (BTree n a)
+< scan1 :: Num a => Unop (T n a)
 < scan1 = inT (const 0) (inInvertF h)
 <  where
 <    h (es :# os) = (ss :# ss + es)
@@ -208,7 +208,7 @@ The result corresponds to `invertF (es :# ss)`, so we'll want to replace each co
 
 The modified `SuccC` case:
 
-> scan2 :: Num a => Unop (BTree n a)
+> scan2 :: Num a => Unop (T n a)
 > scan2 = inT (const 0) (after . seconds scan2 . before)
 
 > before, after :: (Functor f, Num a) => Unop (f (Pair a))
