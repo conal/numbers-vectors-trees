@@ -29,8 +29,6 @@ References:
 
 [*Applicative Programming with Effects*]: http://www.soi.city.ac.uk/~ross/papers/Applicative.html "Paper by Conor McBride and Ross Paterson"
 
-[*Lazier function definitions by merging partial values*]: http://conal.net/blog/posts/lazier-function-definitions-by-merging-partial-values/ "blog post"
-
 [*Semantic editor combinators*]: http://conal.net/blog/posts/semantic-editor-combinators/ "blog post"
 
  -->
@@ -71,7 +69,6 @@ Operate inside the representation of `f :^ n`:
 > inC2 l _ (ZeroC a ) (ZeroC b ) = ZeroC (l a  b )
 > inC2 _ b (SuccC as) (SuccC bs) = SuccC (b as bs)
 
-
 > instance ShowF f => ShowF (f :^ n) where showF = show
 >
 > instance (Show a, ShowF f) => Show ((f :^ n) a) where
@@ -87,8 +84,7 @@ The following definitions arise from the standard instances for binary functor c
 
 > instance (IsNat n, Applicative f) => Applicative (f :^ n) where
 >   pure = pureN nat
->   ZeroC f  <*> ZeroC x  = ZeroC (f x)
->   SuccC fs <*> SuccC xs = SuccC (liftA2 (<*>) fs xs)
+>   (<*>) = inC2 ($) (liftA2 (<*>))
 
 > pureN :: Applicative f => Nat n -> a -> (f :^ n) a
 > pureN Zero     a = ZeroC a
@@ -98,18 +94,17 @@ More explicitly:
 
 < pureN (Succ n) a = SuccC ((pure . pureN n) a)
 
-Using `lub`, there's a tidier definition of `(<*>)`:
-
-<   (<*>) = inZeroC2 ($) `lub` inSuccC2 (liftA2 (<*>))
-
-Where `inZeroC2` and `inSuccC2` are *partial* binary functions that work inside of `ZeroC` and `SuccC` as used in various of my blog posts & libraries.
-This example demonstrates another notational benefit of `lub`, extending the techniques in the post [*Lazier function definitions by merging partial values*].
-
 The `Foldable` and `Traversable` classes are also closed under composition.
 
 > instance (Functor f, Foldable f) => Foldable (f :^ n) where
+>   fold (ZeroC a ) = a
+>   fold (SuccC as) = fold (fold <$> as)
+
+Or
+
 >   foldMap h (ZeroC a ) = h a
 >   foldMap h (SuccC as) = fold (foldMap h <$> as)
+
 
 > instance Traversable f => Traversable (f :^ n) where
 >   sequenceA (ZeroC qa) = ZeroC <$> qa
@@ -120,35 +115,6 @@ i.e.,
 <   sequenceA . ZeroC = fmap ZeroC
 <
 <   sequenceA . SuccC = fmap SuccC . sequenceA . fmap sequenceA
-
-Experiments
-===========
-
-< unZeroC :: (f :^ Z) a -> a
-< unZeroC (ZeroC a) = a
-<
-< unSuccC :: IsNat n => (f :^ (S n)) a -> f ((f :^ n) a)
-< unSuccC (SuccC as) = as
-
-< inZeroC :: (a -> b)
-<         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
-< inZeroC h (ZeroC a ) = ZeroC (h a )
-
-< inSuccC :: (forall n. IsNat n => f ((f :^ n) a) -> f ((f :^ n) b))
-<         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
-< inSuccC h (SuccC as) = SuccC (h as)
-
-< inZeroC2 :: (a -> b -> c)
-<          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
-< inZeroC2 h (ZeroC a ) (ZeroC b ) = ZeroC (h a  b )
-
-< inSuccC2 :: (forall n. IsNat n => f ((f :^ n) a) -> f ((f :^ n) b) -> f ((f :^ n) c))
-<          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
-< inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
-
-With these definitions, there's a tidier definition for `(<*>)`:
-
-<   (<*>) = inZeroC2 ($) `lub` inSuccC2 (liftA2 (<*>))
 
 Equality and ordering
 =====================
