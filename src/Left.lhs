@@ -6,7 +6,7 @@
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
 
-> {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
+< {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
 
 |
 Module      :  Left
@@ -22,7 +22,7 @@ See those modules for more description.
 >   ( -- * Bounded numbers
 >     BNat(..),predB,toBNat,fromBNat
 >     -- * N-ary functor composition
->   , (:^)(..),unZeroC,unSuccC
+>   , (:^)(..),unZeroC,unSuccC,inC
 >     -- * Vectors
 >   , Vec(..),headV,tailV,fromList
 >   , littleEndianToZ,bigEndianToZ
@@ -33,16 +33,16 @@ See those modules for more description.
 
 > import Data.List (intercalate)
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
-> import Data.Foldable (Foldable(..))
 > import Data.Traversable (Traversable(..))
 > import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
-> import Data.Traversable
 > import Control.Arrow (first)
 
 > import FunctorCombo.StrictMemo
 
 > import Nat
-> import ShowF
+> import SEC (Unop)
+
+< import ShowF
 
  -->
 
@@ -108,6 +108,14 @@ which translates to a correspondingly tiny change in the `SuccC` constructor.
 
 > unSuccC :: (f :^ (S n)) a -> (f :^ n) (f a)
 > unSuccC (SuccC fsa) = fsa
+
+Operate inside the representation of `f :^ n`:
+
+> inC :: Unop a
+>     -> (forall n. IsNat n => Unop ((f :^ n) (f a)))
+>     -> (forall n. Unop ((f :^ n) a))
+> inC l _ (ZeroC a ) = (ZeroC . l) a
+> inC _ b (SuccC as) = (SuccC . b) as
 
 The instance definitions are completely unchanged, since they are based purely on `Id` and functor composition.
 
