@@ -1,6 +1,6 @@
  <!-- -*- markdown -*-
 
-> {-# LANGUAGE GADTs, TypeOperators #-}
+> {-# LANGUAGE GADTs, TypeOperators, Rank2Types #-}
 
 > {-# OPTIONS_GHC -Wall #-}
 
@@ -31,20 +31,22 @@ Experimenting with a piece of the scan derivation
  <!-- references -->
  <!-- -->
 
-Transform just the left-most or just the right-most in a tree:
-
 > type T m = Pair :^ m
 
+Transform just the left-most or just the right-most in a tree:
+
+< leftmost, rightmost :: a :-+> T m a
+< leftmost  h = inC h ((first  . rightmost) h)
+< rightmost h = inC h ((second . rightmost) h)
+
+Generalizing,
+
+> extreme :: (forall a. a :-+> f a) -> (forall a . a :-+> (f :^ m) a)
+> extreme inF h = inC h ((inF . extreme inF) h)
+
 > leftmost, rightmost :: a :-+> T m a
-> leftmost  h = inC h ((first  . rightmost) h)
-> rightmost h = inC h ((second . rightmost) h)
+> leftmost  = extreme first
+> rightmost = extreme second
 
-The following equivalent form doesn't pass the type-checker:
-
-< rightmost = inC <*> (second . rightmost)
-
-The left-folded form is exactly the same but swapping `fmap` and `rightmost`:
-
-< rightmost h = inC h ((rightmost . second) h)
-
-It would be easy generalize and so get first as well.
+The quantification in the type of `extreme` is delicate.
+It must include `a` and exclude `f`.
