@@ -80,5 +80,5 @@ Like `first` and `second` but for `Pair`:
 Also handy:
 
 > firsts,seconds :: (Traversable f, Applicative f) => f b :-+> f (Pair b)
-> firsts  = inInvertTA . firstP
-> seconds = inInvertTA . secondP
+> firsts  = inInvertF . firstP
+> seconds = inInvertF . secondP
