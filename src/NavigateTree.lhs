@@ -13,7 +13,7 @@ License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-Wrapping and unwraping trees
+Navigating in trees of trees
 
 > module NavigateTree where
 
