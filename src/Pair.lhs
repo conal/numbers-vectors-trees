@@ -26,16 +26,16 @@ Simple 'Bit' type & 'Pair' functor
 Bits and pairs
 ==============
 
-> data Bit = Zero | One deriving (Eq,Ord,Show)
-
-> data Pair a = a :# a
+> data Bit = Off | On deriving (Eq,Ord,Show)
+>
+> data Pair a = a :# a deriving (Eq,Ord,Show)
 
 > instance HasTrie Bit where
 >   type Trie Bit = Pair
->   trie f = f Zero :# f One
->   untrie (z :# _) Zero = z
->   untrie (_ :# o) One  = o
->   enumerate (z :# o) = [(Zero,z),(One,o)]
+>   trie f = f Off :# f On
+>   untrie (z :# _) Off = z
+>   untrie (_ :# o) On  = o
+>   enumerate (z :# o) = [(Off,z),(On,o)]
 
 Other instances
 ===============
@@ -52,3 +52,4 @@ Other instances
 > instance Traversable Pair where
 >   sequenceA (fa :# fb) = (:#) <$> fa <*> fb
 
+I might like to use use `Bool` instead of `Bit`, and replace the current `HasTrie Bool` instance.
