@@ -14,7 +14,7 @@ Stability   :  experimental
 N-ary functor composition.
 See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
-> module ComposeFunctor ((:^)(..),unZeroC,unSuccC) where
+> module ComposeFunctor ((:^)(..),unZeroC,unSuccC,inC) where
 
 > import Prelude hiding (and)
 
@@ -24,6 +24,7 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
 > import Nat
 > import ShowF
+> import SEC (Unop)
 
 References:
 
@@ -56,6 +57,12 @@ Writing as a GADT:
 
 > unSuccC :: (f :^ (S n)) a -> f ((f :^ n) a)
 > unSuccC (SuccC fsa) = fsa
+
+> inC :: Unop a
+>     -> (forall n. IsNat n => Unop (f ((f :^ n) a)))
+>     -> (forall n. Unop ((f :^ n) a))
+> inC l _ (ZeroC a ) = (ZeroC . l) a
+> inC _ b (SuccC as) = (SuccC . b) as
 
 
 > instance ShowF f => ShowF (f :^ n) where showF = show
