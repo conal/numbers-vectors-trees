@@ -1,6 +1,6 @@
  <!-- -*- markdown -*-
 
-> {-# LANGUAGE TypeFamilies #-}
+> {-# LANGUAGE TypeFamilies, TypeOperators #-}
 > {-# OPTIONS_GHC -Wall #-}
 
 |
@@ -12,7 +12,12 @@ Stability   :  experimental
 
 Simple 'Bit' type & 'Pair' functor
 
-> module Pair where
+> module Pair
+>   ( Bit, Pair(..)
+>   , pair, unpair, inPair
+>   , firstP, secondP, firsts, seconds
+>   )
+>     where
 
 > import Data.Monoid (Monoid(..))
 > import Control.Applicative (Applicative(..),(<$>))
@@ -21,6 +26,8 @@ Simple 'Bit' type & 'Pair' functor
 
 > import FunctorCombo.StrictMemo (HasTrie(..))
 
+> import SEC
+
  -->
 
 Bits and pairs
@@ -28,6 +35,7 @@ Bits and pairs
 
 > data Bit = Off | On deriving (Eq,Ord,Show)
 >
+> infixl 0 :#
 > data Pair a = a :# a deriving (Eq,Ord,Show)
 
 > instance HasTrie Bit where
@@ -53,3 +61,24 @@ Other instances
 >   sequenceA (fa :# fb) = (:#) <$> fa <*> fb
 
 I might like to use use `Bool` instead of `Bit`, and replace the current `HasTrie Bool` instance.
+
+> pair :: (a,a) -> Pair a
+> pair (a,b) = (a :# b)
+>
+> unpair :: Pair a -> (a,a)
+> unpair (a :# b) = (a , b)
+
+> inPair :: (a,a) :-+> Pair a
+> inPair = unpair ~> pair
+
+Like `first` and `second` but for `Pair`:
+
+> firstP, secondP :: a :-+> Pair a
+> firstP  = inPair . first
+> secondP = inPair . second
+
+Also handy:
+
+> firsts,seconds :: (Traversable f, Applicative f) => f b :-+> f (Pair b)
+> firsts  = inInvertTA . firstP
+> seconds = inInvertTA . secondP
