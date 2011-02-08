@@ -29,6 +29,7 @@ Library
      VecNum
      Left
      LeftNum
+     Pair
      TreeScan
                        
   ghc-options:         -Wall
