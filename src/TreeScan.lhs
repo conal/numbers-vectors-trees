@@ -221,73 +221,72 @@ For parallelism, use `fmap`.
 
 Next I want to eliminate `seconds`, with its implied structural inversions.
 
- Flattening the recursion
- ========================
+Flattening the recursion
+========================
 
- Expand `scan2` once in the context of its own definition:
+Expand `scan2` once in the context of its own definition:
 
- < seconds (inT' (const 0) (after . seconds scan2 . before))
+< seconds (inT' (const 0) (after . seconds scan2 . before))
 
+< seconds (inT (const 0) (after . seconds scan2 . before))
 
- < seconds (inT (const 0) (inPairs' (after . seconds scan2 . before)))
+Consider the two cases of `inT`
 
- Consider the two cases of `inT`
+< inT l _ (ZeroC a ) = (ZeroC . l) a
+< inT _ b (SuccC as) = (SuccC . b) as
 
- < inT l _ (ZeroC a ) = (ZeroC . l) a
- < inT _ b (SuccC as) = (SuccC . b) as
+< seconds = inUnzip . second
 
- < seconds = inUnzip . second
+<   seconds (inT (const 0) (...)) (ZeroC (a,b) )
 
- <   seconds (inT (const 0) (...)) (ZeroC (a,b) )
+< == inUnzip (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
 
- < == inUnzip (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
+< == (zip . second scan . unzip) (inT (const 0) (...)) (ZeroC (a,b) )
 
- < == (zip . second scan . unzip) (inT (const 0) (...)) (ZeroC (a,b) )
-
- < == zip (second scan (unzip (inT (const 0) (...)) (ZeroC (a,b) )
-
+< == zip (second scan (unzip (inT (const 0) (...)) (ZeroC (a,b) )
 
 
- < inT (seconds . const 0) (seconds . inPairs' (after . seconds scan2 . before))
+
+< inT (seconds . const 0) (seconds . after . seconds scan2 . before)
 
 
- Hm.
- Back up to the definition of seconds:
+Hm.
+Back up to the definition of seconds:
 
- < seconds :: Applicative f => f b :-+> f (a,b)
- < seconds = inUnzip . second
+< seconds :: Applicative f => f b :-+> f (a,b)
+< seconds = inUnzip . second
 
- < inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
- < inUnzip = unzip ~> zip
+< inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
+< inUnzip = unzip ~> zip
 
- I suspect there's a nice law to rewrite `seconds (fmap f)`
+I suspect there's a nice law to rewrite `seconds (fmap f)`
 
- < seconds . fmap == fmap . second
+< seconds . fmap == fmap . second
 
- < secondsFmap :: Applicative f => b :-+> f (a,b)
- < secondsFmap = fmap . second
+< secondsFmap :: Applicative f => b :-+> f (a,b)
+< secondsFmap = fmap . second
 
- <   seconds . seconds . fmap
- < == seconds . fmap . second
- < == fmap . second . second
+<   seconds . seconds . fmap
+< == seconds . fmap . second
+< == fmap . second . second
 
- Maybe think about trees of trees instead of trees of pairs.
+Maybe think about trees of trees instead of trees of pairs.
 
- < unB :: T (S n) (T m a) -> T n (T (S m)) a
- < unB (SuccB t) = ...
+< unB :: T (S n) (T m a) -> T n (T (S m)) a
+< unB (SuccB t) = ...
 
- Hm. I think I want $1+m$, but I have $m+1$.
- This operation would be much easier with right-folded composition.
+Hm. I think I want $1+m$, but I have $m+1$.
+This operation would be much easier with right-folded composition.
 
- < SuccC :: T (S n) (T m a) -> T n (Pair (T m a))
+< SuccC :: T (S n) (T m a) -> T n (Pair (T m a))
 
- < bubble :: (f :^ m) (f a) -> (f :^ S m) a
- < bubble (ZeroC fa ) = SuccC (ZeroC fa)
+< bubble :: (f :^ m) (f a) -> (f :^ S m) a
+< bubble (ZeroC fa ) = SuccC (ZeroC fa)
 
- fa :: f a
- ZeroC fa :: T Z (f a)
- SuccC (ZeroC fa) :: T (S Z) a
+fa :: f a
+ZeroC fa :: T Z (f a)
+SuccC (ZeroC fa) :: T (S Z) a
 
- fas :: T (S m) (f (f a))
+fas :: T (S m) (f (f a))
 
- Oh! Use two different tree types.
+Oh! Use two different tree types.
