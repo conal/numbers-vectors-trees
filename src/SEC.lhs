@@ -12,9 +12,11 @@ Stability   :  experimental
 
 Semantic editor combinators
 
-> module SEC ((~>), Unop, (:-+>), first, second, result) where
+> module SEC ((~>), Unop, (:-+>), first, second, result, invertTA, inInvertTA) where
 
 > import Prelude () -- or hiding ((.))
+> import Control.Applicative (Applicative(..))
+> import Data.Traversable
 > import Control.Category (Category(..))
 > import Control.Arrow (first,second)
 
@@ -49,4 +51,13 @@ Like `second` but on function types:
 
 > result :: (b -> b') -> ((a -> b) -> (a -> b'))
 > result = (.)
+
+A synonym 
+
+> invertTA :: (Traversable f, Applicative g) => f (g a) -> g (f a)
+> invertTA = sequenceA
+
+> inInvertTA :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
+>               f (g a) :-+> g (f a)
+> inInvertTA = invertTA ~> invertTA
 
