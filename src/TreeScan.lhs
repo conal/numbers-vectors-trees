@@ -29,6 +29,7 @@ Stability   :  experimental
 > import Left
 > import LeftNum
 > import Pair
+> import SEC
 
  -->
 
@@ -37,8 +38,6 @@ Stability   :  experimental
 [*From tries to trees*]: http://conal.net/blog/posts/from-tries-to-trees/ "blog post"
 
 [*Programming parallel algorithms*]: http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.53.5739 "Paper by Guy Blelloch, 1990"
-
-[*Semantic editor combinators*]: http://conal.net/blog/posts/semantic-editor-combinators/ "blog post"
 
 [*Type-bounded numbers*]: http://conal.net/blog/posts/type-bounded-numbers/ "blog post"
 
@@ -57,7 +56,7 @@ In the section called "Three Other Algorithms", Guy writes
  > The algorithm works by elementwise adding the odd and even elements and recursively solving the problem on these sums.
    The result of the recursive call is then used to generate all the prefix sums.
 
-This algorithm assumes the array size is a power of two, so that each "uninterleaving" yields the same number of even as odd elements.
+This algorithm assumes the array size is a power of two, so that each uninterleaving yields the same number of even as odd elements.
 I want to capture this power-of-two assumption statically.
 As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$ have $2^n$ elements and can be statically depth-typed.
 Moreover, as shown in [*A trie for length-typed vectors*], such trees naturally arise as the trie functors for size-typed vectors of bits.
@@ -114,124 +113,32 @@ but GHC 6.12.3 gives me this error message:
 
 I think the conflict here is that `c` must match `Z` in the first argument of `btree` but `S n` in the second.
 
-Pairing and unpairing
-=====================
-
-Type-preserving editor:
-
-> type Unop a = a -> a
-
-A type-preserving [*Semantic editor combinator*]:
-
-> type p :-+> q = Unop p -> Unop q
-
-Question: is `(:-+>)` an `Arrow` (assuming it were `newtype`-wrapped)?
-
-Start with some convenience for converting between standard pairs and 2-vectors:
-
-> type Pair' a = (a,a)
-
-> pair :: Pair' a -> Pair a
-> pair (a,b) = (a :# b)
-
-> unpair :: Pair a -> Pair' a
-> unpair (a :# b) = (a , b)
-
-> inPair' :: Pair' a :-+> Pair a
-> inPair' = unpair ~> pair
-
-> infixr 1 ~>
-> (~>) :: (a' -> a) -> (b -> b') -> ((a -> b) -> (a' -> b'))
-> (f ~> h) g = h . g . f
-
-More generally,
-
-< (~>) :: Category (-->) =>
-<         (a' --> a) -> (b --> b') -> ((a --> b) -> (a' --> b'))
-
-> inSequenceA :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
->                f (g a) :-+> g (f a)
-> inSequenceA = sequenceA ~> sequenceA
-
-And another, on collections:
-
-> inPairs' :: Functor f => f (Pair' a) :-+> f (Pair a)
-> inPairs' = fmap unpair ~> fmap pair
-
-
-To separate out and later recombine the evens and odds:
-
-> uninterleave :: BTree n (Pair a) -> Pair' (BTree n a)
-> uninterleave = unpair . sequenceA
-
-> interleave :: IsNat n => Pair' (BTree n a) -> BTree n (Pair a)
-> interleave = sequenceA . pair
-
-< inUninterleave :: IsNat n => Pair' (BTree n a) :-+> BTree n (Pair a)
-< inUninterleave = uninterleave ~> interleave
-
-Better:
-
-> inUninterleave :: IsNat n => Pair' (BTree n a) :-+> BTree n (Pair a)
-> inUninterleave = inSequenceA . inPair'
-
-And counterparts to `first` and `second`:
-
-> firstP, secondP :: a :-+> Pair a
-> firstP  = inPair' . first
-> secondP = inPair' . second
-
-Also handy:
-
-> zip :: Applicative f => (f a, f b) -> f (a,b)
-> zip = uncurry (liftA2 (,))
-
-> unzip :: Functor f => f (a,b) -> (f a, f b)
-> unzip = fmap fst &&& fmap snd
-
-> inZip :: Applicative f => f (a,b) :-+> (f a, f b)
-> inZip = zip ~> unzip
-
-> inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
-> inUnzip = unzip ~> zip
-
-> seconds :: Applicative f => f b :-+> f (a,b)
-> seconds = inUnzip . second
-
-In particular,
-
-< inUnzip :: BTree n (Pair' a) :-+> Pair' (BTree n a)
-
-< inUnzipT :: Pair' (BTree n a) :-+> BTree n (Pair a)
-< inUnzipT h t = 
-
 Scan
 ====
 
 < scan1 :: Num a => Unop (BTree n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (interleave (ss,ss + es))
+< scan1 (SuccC as) = SuccC (invertF (ss :# ss + es))
 <  where
-<    (es,os) = uninterleave as
-<    ss      = scan1 (es + os)
+<    (es :# os) = invertF as
+<    ss         = scan1 (es + os)
 
-Factor out the uninterleaving & interleaving:
+Factor out the container inversions:
 
 < scan1 :: Num a => Unop (BTree n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (inUninterleave h as)
+< scan1 (SuccC as) = SuccC (inInvertF h as)
 <  where
-<    h (es,os) = (ss,ss + es)
+<    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
 
 And then use `inT` for the tree transformation pattern:
 
 > scan1 :: Num a => Unop (BTree n a)
-> scan1 = inT (const 0) (inUninterleave h)
+> scan1 = inT (const 0) (inInvertF h)
 >  where
->    h (es,os) = (ss,ss + es)
+>    h (es :# os) = (ss :# ss + es)
 >     where ss = scan1 (es + os)
-
 
 
 Testing
@@ -249,7 +156,7 @@ The utility function `pairs` coalesces adjacent list elements into explicit pair
 
 > pairs :: [a] -> [Pair a]
 > pairs []       = []
-> pairs (a:b:cs) = pair (a,b) : pairs cs
+> pairs (a:b:cs) = (a :# b) : pairs cs
 > pairs ([_])    = error "pairs: odd-length list."
 
 Use `printT` to try out the following examples.
@@ -282,13 +189,13 @@ How can we shift from a functional algorithm toward one that updates its argumen
 Look again at the functional version:
 
 < scan1 :: Num a => Unop (BTree n a)
-< scan1 = inT (const 0) (inUninterleave h)
+< scan1 = inT (const 0) (inInvertF h)
 <  where
-<    h (es,os) = (ss,ss + es)
+<    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
 
 To derive an in-place algorithm, let's look carefully at what storage can be recycled when.
-Assume that somehow the uninterleaving and interleaving is conceptual only, with no data actually being moved.
+Assume that somehow the container inversions are conceptual only, with no data actually being moved.
 After adding `es` and `os` (evens & odds), we'll still `es` (for later `ss+es`), but we won't need `os`.
 Also, `ss` and `os` have the same size.
 Together, these properties mean that `ss` can overwrite `os`.
@@ -297,100 +204,90 @@ Similarly, `ss+es` has the same length as `es`, and that sum is the last use of 
 
 To leave the evens in place and update the odds, we can simply replace each consecutive `(e,o)` pair with `(e,e+o)`.
 Then perform the recursive scan on just the seconds of these pairs, leaving the `evens` untouched.
-The result corresponds to `interleave (es,ss)`, so we'll want to replace each consecutive `(e,s)` pair with `(s,s+e)`.
+The result corresponds to `invertF (es :# ss)`, so we'll want to replace each consecutive `(e :# s)` pair with `(s :# s+e)`.
 
 The modified `SuccC` case:
 
 > scan2 :: Num a => Unop (BTree n a)
-> scan2 = inT (const 0) (inPairs' (after . seconds scan2 . before))
+> scan2 = inT (const 0) (after . seconds scan2 . before)
 
-> before, after :: (Functor f, Num a) => Unop (f (Pair' a))
-> before = fmap (\ (e,o) -> (e,e+o))
-> after  = fmap (\ (e,s) -> (s,s+e))
-
-Define a slightly more specialized variant of `inT`:
-
-> inT' :: Unop a -> (forall n. IsNat n => Unop (BTree n (Pair' a)))
->      -> (forall n. Unop (BTree n a))
-> inT' l b = inT l (inPairs' b)
-
-We're left with a simple definition:
-
-< scan2 = inT' (const 0) (after . seconds scan2 . before)
+> before, after :: (Functor f, Num a) => Unop (f (Pair a))
+> before = fmap (\ (e :# o) -> (e :# e+o))
+> after  = fmap (\ (e :# s) -> (s :# s+e))
 
 This example illustrates an approach to synthesizing in-place algorithms.
 Express the algorithms in terms of `Unop` pipelines.
 For parallelism, use `fmap`.
 
-Next I want to eliminate `seconds`, with its implied unzipping & zipping.
+Next I want to eliminate `seconds`, with its implied structural inversions.
 
-Flattening the recursion
-========================
+ Flattening the recursion
+ ========================
 
-Expand `scan2` once in the context of its own definition:
+ Expand `scan2` once in the context of its own definition:
 
-< seconds (inT' (const 0) (after . seconds scan2 . before))
-
-
-< seconds (inT (const 0) (inPairs' (after . seconds scan2 . before)))
-
-Consider the two cases of `inT`
-
-< inT l _ (ZeroC a ) = (ZeroC . l) a
-< inT _ b (SuccC as) = (SuccC . b) as
-
-< seconds = inUnzip . second
-
-<   seconds (inT (const 0) (...)) (ZeroC (a,b) )
-
-< == inUnzip (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
-
-< == (zip . second scan . unzip) (inT (const 0) (...)) (ZeroC (a,b) )
-
-< == zip (second scan (unzip (inT (const 0) (...)) (ZeroC (a,b) )
+ < seconds (inT' (const 0) (after . seconds scan2 . before))
 
 
+ < seconds (inT (const 0) (inPairs' (after . seconds scan2 . before)))
 
-< inT (seconds . const 0) (seconds . inPairs' (after . seconds scan2 . before))
+ Consider the two cases of `inT`
+
+ < inT l _ (ZeroC a ) = (ZeroC . l) a
+ < inT _ b (SuccC as) = (SuccC . b) as
+
+ < seconds = inUnzip . second
+
+ <   seconds (inT (const 0) (...)) (ZeroC (a,b) )
+
+ < == inUnzip (second scan) (inT (const 0) (...)) (ZeroC (a,b) )
+
+ < == (zip . second scan . unzip) (inT (const 0) (...)) (ZeroC (a,b) )
+
+ < == zip (second scan (unzip (inT (const 0) (...)) (ZeroC (a,b) )
 
 
-Hm.
-Back up to the definition of seconds:
 
-< seconds :: Applicative f => f b :-+> f (a,b)
-< seconds = inUnzip . second
+ < inT (seconds . const 0) (seconds . inPairs' (after . seconds scan2 . before))
 
-< inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
-< inUnzip = unzip ~> zip
 
-I suspect there's a nice law to rewrite `seconds (fmap f)`
+ Hm.
+ Back up to the definition of seconds:
 
-< seconds . fmap == fmap . second
+ < seconds :: Applicative f => f b :-+> f (a,b)
+ < seconds = inUnzip . second
 
-< secondsFmap :: Applicative f => b :-+> f (a,b)
-< secondsFmap = fmap . second
+ < inUnzip :: Applicative f => (f a, f b) :-+> f (a,b)
+ < inUnzip = unzip ~> zip
 
-<   seconds . seconds . fmap
-< == seconds . fmap . second
-< == fmap . second . second
+ I suspect there's a nice law to rewrite `seconds (fmap f)`
 
-Maybe think about trees of trees instead of trees of pairs.
+ < seconds . fmap == fmap . second
 
-< unB :: T (S n) (T m a) -> T n (T (S m)) a
-< unB (SuccB t) = ...
+ < secondsFmap :: Applicative f => b :-+> f (a,b)
+ < secondsFmap = fmap . second
 
-Hm. I think I want $1+m$, but I have $m+1$.
-This operation would be much easier with right-folded composition.
+ <   seconds . seconds . fmap
+ < == seconds . fmap . second
+ < == fmap . second . second
 
-< SuccC :: T (S n) (T m a) -> T n (Pair (T m a))
+ Maybe think about trees of trees instead of trees of pairs.
 
-< bubble :: (f :^ m) (f a) -> (f :^ S m) a
-< bubble (ZeroC fa ) = SuccC (ZeroC fa)
+ < unB :: T (S n) (T m a) -> T n (T (S m)) a
+ < unB (SuccB t) = ...
 
-fa :: f a
-ZeroC fa :: T Z (f a)
-SuccC (ZeroC fa) :: T (S Z) a
+ Hm. I think I want $1+m$, but I have $m+1$.
+ This operation would be much easier with right-folded composition.
 
-fas :: T (S m) (f (f a))
+ < SuccC :: T (S n) (T m a) -> T n (Pair (T m a))
 
-Oh! Use two different tree types.
+ < bubble :: (f :^ m) (f a) -> (f :^ S m) a
+ < bubble (ZeroC fa ) = SuccC (ZeroC fa)
+
+ fa :: f a
+ ZeroC fa :: T Z (f a)
+ SuccC (ZeroC fa) :: T (S Z) a
+
+ fas :: T (S m) (f (f a))
+
+ Oh! Use two different tree types.
