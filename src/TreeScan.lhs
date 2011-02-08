@@ -28,6 +28,7 @@ Stability   :  experimental
 
 > import Left
 > import LeftNum
+> import Pair
 
  -->
 
@@ -60,26 +61,24 @@ This algorithm assumes the array size is a power of two, so that each "uninterle
 I want to capture this power-of-two assumption statically.
 As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$ have $2^n$ elements and can be statically depth-typed.
 Moreover, as shown in [*A trie for length-typed vectors*], such trees naturally arise as the trie functors for size-typed vectors of bits.
-A bit can represented as the type of natural numbers less than two, as in [*Type-bounded numbers*].
+A bit can represented as the type of natural numbers less than two, as in [*Type-bounded numbers*], but for notational convenience I'll use a specialized `Bit` type and `Pair` functor.
 
-> type Bit     = BNat TwoT
 > type Bits  n = Vec n Bit
+>
+> type BTree n = Trie (Bits n)
 
-> type Pair = Vec TwoT -- == Trie Bit
+Equivalently,
 
 < type BTree n = Trie (Bits n)
 <              = Trie (Vec n Bit)
 <              = Trie Bit :^ n
-<              = Trie (BNat TwoT) :^ n
-<              = Vec TwoT :^ n
+<              = Pair :^ n
 
-where `f :^ n` is the $n$-ary composition of the functor `f` with itself, and `n` is a type-encoded natural unber.
-Because of what I think is a bug in ghc 6.12.3, I'll use this last form.
-
-> type BTree n = Pair :^ n
+where `f :^ n` is the $n$-ary composition of the functor `f` with itself.
 
 For now, this module is light on commentary.
-To do: extract from the other module I started (without size-typing).
+To do: extract prose from the other module I started (without size-typing).
+Or update that module and refer to it here, focusing remarks on changes.
 
 If the generality of `Vec` leads to inconvenient notation, then maybe use a specialized definitions.
 I'd like the general form to work, so I'm trying it first.
@@ -133,10 +132,10 @@ Start with some convenience for converting between standard pairs and 2-vectors:
 > type Pair' a = (a,a)
 
 > pair :: Pair' a -> Pair a
-> pair (a,b) = ZVec :> a :> b
+> pair (a,b) = (a :# b)
 
 > unpair :: Pair a -> Pair' a
-> unpair (ZVec :> a :> b) = (a,b)
+> unpair (a :# b) = (a , b)
 
 > inPair' :: Pair' a :-+> Pair a
 > inPair' = unpair ~> pair
@@ -257,8 +256,8 @@ Use `printT` to try out the following examples.
 I haven't yet worked out a good `Show` instance for `(f :^ n) a`.
 
 > showT :: Show a => BTree n a -> String
-> showT (ZeroC a ) = show a
-> showT (SuccC as) = showT as
+> showT (ZeroC a ) = show  a
+> showT (SuccC as) = showT (fmap unpair as)
 
 > printT :: Show a => BTree n a -> IO ()
 > printT = putStrLn . showT
