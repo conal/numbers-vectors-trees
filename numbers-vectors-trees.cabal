@@ -23,6 +23,7 @@ Library
      TNat
      Nat
      BNat
+     SEC
      ShowF
      ComposeFunctor
      Vec
