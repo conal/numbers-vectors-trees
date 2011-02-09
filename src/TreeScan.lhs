@@ -89,7 +89,7 @@ Scan
 <    (es :# os) = invert as
 <    ss         = scan1 (es + os)
 
-Factor out the container inversions:
+Factor out the pair/tree containment inversions:
 
 < scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
@@ -181,6 +181,8 @@ The modified `SuccC` case:
 > before = fmap (\ (e :# o) -> (e :# e+o))
 > after  = fmap (\ (e :# s) -> (s :# s+e))
 
+For a more formal derivation, see my notes from 2011-02-08.
+
 This example illustrates an approach to synthesizing in-place algorithms.
 Express the algorithms in terms of `Unop` pipelines.
 For parallelism, use `fmap`.
@@ -196,11 +198,9 @@ Expand `scan2` once in the context of its own definition:
 
 < seconds = inInvert . second
 
-<   seconds scan
-< == inInvert (second scan)
-< == invert . second scan . invert
-
 <   (seconds scan) t
+< == inInvert (second scan) t
+< == (invert . second scan . invert) t
 < == invert (second scan (invert t))
 
 Consider the two cases of `inC`
@@ -208,22 +208,66 @@ Consider the two cases of `inC`
 < inC l _ (ZeroC a ) = (ZeroC . l) a
 < inC _ b (SuccC as) = (SuccC . b) as
 
-< seconds (inC (const 0) (...)) (ZeroC (a,b))
-< (inInvert . second) (inC (const 0) (...)) (ZeroC (a,b))
-< inInvert (second (inC (const 0) (...))) (ZeroC (a,b))
-< invert (second (inC (const 0) (...)) (invert (ZeroC (a,b))))
-< invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
-< invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
-< invert (ZeroC a,0)
+First case: `t = Zero (a,b)` for some `a` and `b`:
 
-< seconds (inC (const 0) (...)) (SuccC t)
-< (inInvert . second) (inC (const 0) (...)) (SuccC t)
-< inInvert (second (inC (const 0) (...))) (SuccC t)
-< invert (second (inC (const 0) (...)) (invert (SuccC t)))
-<
-< invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
-< invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
-< invert (ZeroC a,0)
+> seconds scan t
+> seconds scan (Zero (a,b))
+> seconds (inC (const 0) (...)) (ZeroC (a,b))
+> (inInvert . second) (inC (const 0) (...)) (ZeroC (a,b))
+> inInvert (second (inC (const 0) (...))) (ZeroC (a,b))
+> invert (second (inC (const 0) (...)) (invert (ZeroC (a,b))))
+> invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
+> invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
+> invert (ZeroC a,Zero 0)
+> ZeroC (a,0)
+> fmap (second (const 0)) (ZeroC (a,b))
+
+Second case, `t = Succ t'` for some `t'`.
+
+> seconds scan t
+> seconds scan (SuccC t')
+> (inInvert . second) scan (SuccC t')
+> inInvert (second scan) (SuccC t')
+> (invert . second scan . invert) (SuccC t')
+> invert (second scan (invert (SuccC t')))
+
+Note that
+
+> invert (SuccC t') = fmap SuccC . invert . fmap invert $ t'
+
+i.e.,
+
+> invert . SuccC = fmap SuccC . invert . fmap invert
+
+So
+
+> invert . second scan . invert . SuccC
+> invert . second scan . fmap SuccC . invert . fmap invert
+
+
+> Succ t' :: T m (Pair a)
+> t' :: T m (Pair (Pair a))
+> fmap invert $ t' :: T m (Pair (Pair a))
+> invert . fmap invert $ t' :: Pair (T m (Pair a))
+> fmap SuccC . invert . fmap invert $ t' :: Pair (T (S m) a)
+> second scan . fmap SuccC . invert . fmap invert $ t' :: Pair (T (S m) a)
+> invert . second scan . fmap SuccC . invert . fmap invert $ t' :: T (S m) (Pair a)
+
+Where to go from here?
+
+
+-------
+
+> seconds (inC (const 0) (...)) (SuccC t)
+> (inInvert . second) (inC (const 0) (...)) (SuccC t)
+> inInvert (second (inC (const 0) (...))) (SuccC t)
+> invert (second (inC (const 0) (...)) (invert (SuccC t)))
+
+
+> invert (second (inC (const 0) (...)) (invert (SuccC t)))
+> invert (second (inC (const 0) (...)) (l :# r))
+> invert (l :# scan r)
+> SuccC (l `zip` scan r)
 
 
 
