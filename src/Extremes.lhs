@@ -33,7 +33,7 @@ Experimenting with a piece of the scan derivation
 
 > type T m = Pair :^ m
 
-Transform just the left-most or just the right-most in a tree:
+Transform just the left-most or just the right-most element in a tree:
 
 < leftmost, rightmost :: a :-+> T m a
 < leftmost  h = inC h ((first  . rightmost) h)
@@ -41,7 +41,7 @@ Transform just the left-most or just the right-most in a tree:
 
 Generalizing,
 
-> extreme :: (forall a. a :-+> f a) -> (forall a . a :-+> (f :^ m) a)
+> extreme :: (forall a. a :-+> f a) -> (forall a. a :-+> (f :^ m) a)
 > extreme inF h = inC h ((inF . extreme inF) h)
 
 > leftmost, rightmost :: a :-+> T m a
@@ -50,3 +50,9 @@ Generalizing,
 
 The quantification in the type of `extreme` is delicate.
 It must include `a` and exclude `f`.
+
+For `scan`, we'll want to transform the right-most children of each of the two subtrees:
+
+> twoRights :: IsNat m => Pair a :-+> Pair (T m a)
+> twoRights = inInvert . rightmost
+
