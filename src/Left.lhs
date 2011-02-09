@@ -314,6 +314,10 @@ See [mux's stuff](https://bitbucket.org/mumux/stuff/src/1e9537e03f08/Vector.hs).
 >   traverse _ ZVec      = pure ZVec
 >   traverse h (as :> a) = (:>) <$> traverse h as <*> h a
 
+or
+
+>   sequenceA ZVec      = pure ZVec
+>   sequenceA (as :> a) = (:>) <$> sequenceA as <*> a
 
 > last :: Vec (S n) a -> a
 > last (ZVec :> a)        = a
