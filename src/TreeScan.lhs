@@ -263,18 +263,5 @@ I know where I'm trying to get to, as in `NavigateTree` and `Extremes`.
 Put the pieces together here, and maybe then I'll see how to derive it.
 
 > atDepth :: IsNat n => Nat m -> T n a :-+> T (m :+: n) a
-
-< atDepth Zero      h t = h t
-< atDepth (Succ m') h (SuccC t') = SuccC (atDepth m' (seconds h) t')
-
-Sadly, we can't use `inC` to simplify this definition, but we could use `inSuccC`.
-
-> atDepth Zero      h = h
-> atDepth (Succ m') h = inSuccC (atDepth m' (seconds h))
-
-Oops:
-
-    Could not deduce (IsNat (n1 :+: n))
-      from the context (m ~ S n1, IsNat n1)
-      arising from a use of `inSuccC'
-
+> atDepth Zero      h t = h t
+> atDepth (Succ m') h (SuccC t') = SuccC (atDepth m' (seconds h) t')
