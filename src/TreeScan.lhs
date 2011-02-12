@@ -25,6 +25,7 @@ Stability   :  experimental
 > import Pair
 > import SEC
 
+
  -->
 
  <!-- references -->
@@ -210,139 +211,70 @@ Consider the two cases of `inC`
 
 First case: `t = Zero (a,b)` for some `a` and `b`:
 
-> seconds scan t
-> seconds scan (Zero (a,b))
-> seconds (inC (const 0) (...)) (ZeroC (a,b))
-> (inInvert . second) (inC (const 0) (...)) (ZeroC (a,b))
-> inInvert (second (inC (const 0) (...))) (ZeroC (a,b))
-> invert (second (inC (const 0) (...)) (invert (ZeroC (a,b))))
-> invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
-> invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
-> invert (ZeroC a,Zero 0)
-> ZeroC (a,0)
-> fmap (second (const 0)) (ZeroC (a,b))
+< seconds scan t
+< seconds scan (Zero (a,b))
+< seconds (inC (const 0) (...)) (ZeroC (a,b))
+< (inInvert . second) (inC (const 0) (...)) (ZeroC (a,b))
+< inInvert (second (inC (const 0) (...))) (ZeroC (a,b))
+< invert (second (inC (const 0) (...)) (invert (ZeroC (a,b))))
+< invert (second (inC (const 0) (...)) (ZeroC a,ZeroC b))
+< invert (ZeroC a,(inC (const 0) (...))(ZeroC b))
+< invert (ZeroC a,Zero 0)
+< ZeroC (a,0)
+< fmap (second (const 0)) (ZeroC (a,b))
 
 Second case, `t = Succ t'` for some `t'`.
 
-> seconds scan t
-> seconds scan (SuccC t')
-> (inInvert . second) scan (SuccC t')
-> inInvert (second scan) (SuccC t')
-> (invert . second scan . invert) (SuccC t')
-> invert (second scan (invert (SuccC t')))
+< seconds scan t
+< seconds scan (SuccC t')
+< (inInvert . second) scan (SuccC t')
+< inInvert (second scan) (SuccC t')
+< (invert . second scan . invert) (SuccC t')
+< invert (second scan (invert (SuccC t')))
 
 Note that
 
-> invert (SuccC t') = fmap SuccC . invert . fmap invert $ t'
+< invert (SuccC t') = fmap SuccC . invert . fmap invert $ t'
 
 i.e.,
 
-> invert . SuccC = fmap SuccC . invert . fmap invert
+< invert . SuccC = fmap SuccC . invert . fmap invert
 
 So
 
-> invert . second scan . invert . SuccC
-> invert . second scan . fmap SuccC . invert . fmap invert
+< invert . second scan . invert . SuccC
+< invert . second scan . fmap SuccC . invert . fmap invert
 
 
-> Succ t' :: T m (Pair a)
-> t' :: T m (Pair (Pair a))
-> fmap invert $ t' :: T m (Pair (Pair a))
-> invert . fmap invert $ t' :: Pair (T m (Pair a))
-> fmap SuccC . invert . fmap invert $ t' :: Pair (T (S m) a)
-> second scan . fmap SuccC . invert . fmap invert $ t' :: Pair (T (S m) a)
-> invert . second scan . fmap SuccC . invert . fmap invert $ t' :: T (S m) (Pair a)
+< Succ t' :: T m (Pair a)
+< t' :: T m (Pair (Pair a))
+< fmap invert $ t' :: T m (Pair (Pair a))
+< invert . fmap invert $ t' :: Pair (T m (Pair a))
+< fmap SuccC . invert . fmap invert $ t' :: Pair (T (S m) a)
+< second scan . fmap SuccC . invert . fmap invert $ t' :: Pair (T (S m) a)
+< invert . second scan . fmap SuccC . invert . fmap invert $ t' :: T (S m) (Pair a)
 
 Where to go from here?
 
+Trees within trees
+------------------
 
--------
+I know where I'm trying to get to, as in `NavigateTree` and `Extremes`.
+Put the pieces together here, and maybe then I'll see how to derive it.
 
-> seconds (inC (const 0) (...)) (SuccC t)
-> (inInvert . second) (inC (const 0) (...)) (SuccC t)
-> inInvert (second (inC (const 0) (...))) (SuccC t)
-> invert (second (inC (const 0) (...)) (invert (SuccC t)))
+> atDepth :: IsNat n => Nat m -> T n a :-+> T (m :+: n) a
 
+< atDepth Zero      h t = h t
+< atDepth (Succ m') h (SuccC t') = SuccC (atDepth m' (seconds h) t')
 
-> invert (second (inC (const 0) (...)) (invert (SuccC t)))
-> invert (second (inC (const 0) (...)) (l :# r))
-> invert (l :# scan r)
-> SuccC (l `zip` scan r)
+Sadly, we can't use `inC` to simplify this definition, but we could use `inSuccC`.
 
+> atDepth Zero      h = h
+> atDepth (Succ m') h = inSuccC (atDepth m' (seconds h))
 
+Oops:
 
-< inC (seconds . const 0) (seconds . after . seconds scan2 . before)
-
-
-Hm.
-Back up to the definition of seconds:
-
-< seconds :: Applicative f => f b :-+> f (a,b)
-< seconds = inInvert . second
-
-< inInvert :: Applicative f => (f a, f b) :-+> f (a,b)
-< inInvert = invert ~> invert
-
-I suspect there's a nice law to rewrite `seconds (fmap f)`
-
-< seconds . fmap == fmap . second
-
-< secondsFmap :: Applicative f => b :-+> f (a,b)
-< secondsFmap = fmap . second
-
-<   seconds . seconds . fmap
-< == seconds . fmap . second
-< == fmap . second . second
-
-Maybe think about trees of trees instead of trees of pairs.
-
-< unB :: T (S n) (T m a) -> T n (T (S m)) a
-< unB (SuccB t) = ...
-
-Hm. I think I want $1+m$, but I have $m+1$.
-This operation would be much easier with right-folded composition.
-
-< SuccC :: T (S n) (T m a) -> T n (Pair (T m a))
-
-< bubble :: (f :^ m) (f a) -> (f :^ S m) a
-< bubble (ZeroC fa ) = SuccC (ZeroC fa)
-
-fa :: f a
-ZeroC fa :: T Z (f a)
-SuccC (ZeroC fa) :: T (S Z) a
-
-fas :: T (S m) (f (f a))
-
-Oh! Use two different tree types.
-
-Delving into subtrees
-=====================
-
-Every pass maps over pairs of elements and does a simple addition.
-In the downsweep (second) phase of exclusive scan, we also swap.
-
-In the initial pass of the upsweep phase and the final pass of the downsweep phase, the pairs are already adjacent.
-With a left-folded tree, it's easy to get to those pairs.
-Other passes have to pull these values from non-adjacent tree/array elements and put the results back.
-
-To transform the right-most element:
-
-> delveR :: a :-+> T m a
-> delveR f = inC f ((delveR . second) f)
-
-For a right-folded tree, I think the definition becomes
-
-< delveR f = inC f ((second . delveR) f)
-
-I don't want the right-most element or right-most pair.
-I want the right-most values in the two subtrees.
-
-< (a,b) --> f (a,b)
-< ((a,b),(c,d)) --> ((a,b'),(c,d')) where (b',d') = f (b,d)
-
-< ((a,b),(c,d))
-< ((a,c),(b,d))
-< ((a,c),(b',d'))
-< ((a,b'),(c,d'))
-
+    Could not deduce (IsNat (n1 :+: n))
+      from the context (m ~ S n1, IsNat n1)
+      arising from a use of `inSuccC'
 
