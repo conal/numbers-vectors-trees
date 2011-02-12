@@ -23,6 +23,7 @@ See those modules for more description.
 >     BNat(..),predB,toBNat,fromBNat
 >     -- * N-ary functor composition
 >   , (:^)(..),unZeroC,unSuccC,inC
+>   , inZeroC, inSuccC, inZeroC2, inSuccC2
 >     -- * Vectors
 >   , Vec(..),headV,tailV,fromList
 >   , littleEndianToZ,bigEndianToZ
@@ -116,6 +117,26 @@ Operate inside the representation of `f :^ n`:
 >     -> (forall n. Unop ((f :^ n) a))
 > inC l _ (ZeroC a ) = (ZeroC . l) a
 > inC _ b (SuccC as) = (SuccC . b) as
+
+To do: add `inC2`.
+
+Similar to `inC`, but useful when we can know whether a `ZeroC` or a `SuccC`:
+
+> inZeroC :: (a -> b)
+>         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+> inZeroC h (ZeroC a ) = ZeroC (h a )
+
+> inSuccC :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b))
+>         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+> inSuccC h (SuccC as) = SuccC (h as)
+
+> inZeroC2 :: (a -> b -> c)
+>          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+> inZeroC2 h (ZeroC a ) (ZeroC b ) = ZeroC (h a  b )
+
+> inSuccC2 :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
+>          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+> inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
 
 The instance definitions are completely unchanged, since they are based purely on `Id` and functor composition.
 
