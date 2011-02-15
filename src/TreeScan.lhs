@@ -205,16 +205,18 @@ Another whack: place right-folded trees inside of left-folded trees.
 >
 > type RT m = Trie (RBits m)
 
-> inRZeros :: T n (RT Z a) :-+> T n a
-> inRZeros = R.ZeroC ~>* R.unZeroC
+We'll want to wrap and unwrap the inner right-folded trees:
+
+> inRZeroCs :: Functor g => g (RT Z a) :-+> g a
+> inRZeroCs = R.ZeroC ~>* R.unZeroC
+
+> inRSuccCs :: (Functor g, IsNat n) =>
+>              g ((f R.:^ (S n)) a) :-+> g (f ((f R.:^ n) a))
+> inRSuccCs = R.SuccC ~>* R.unSuccC
+
 
 > scan3 :: Num a => Unop (T n a)
-> scan3 = inRZeros scan3'
-
-or
-
-< scan3 = fmap R.unZeroC . scan3' . fmap R.ZeroC
-
+> scan3 = inRZeroCs scan3'
 
 > scan3' :: (IsNat m, Num a) => Unop (T n (RT m a))
 > scan3' = inC (rightmost (const 0)) (fmap after3 . middle3 . fmap before3)
@@ -224,7 +226,7 @@ or
 > after3  = twoRights after
 
 > middle3 :: (IsNat m, Num a) => Unop (T n (Pair (RT m a)))
-> middle3 = (R.SuccC ~>* R.unSuccC) scan3'
+> middle3 = inRSuccCs scan3'
 
 Test it:
 
@@ -242,7 +244,7 @@ Drop `inC`, and work always at the level of these left/right hybrid trees.
 Instead of `inC`, make `n` explicit as a typed number.
 
 > scan4 :: (IsNat n, Num a) => Unop (T n a)
-> scan4 = inRZeros (scan4' nat)
+> scan4 = inRZeroCs (scan4' nat)
 
 > scan4' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan4' Zero      = inZeroC (rightmost (const 0))
@@ -263,12 +265,12 @@ or
 > around4 = before4 ~>* after4
 
 > middle4 :: (IsNat m, Num a) => Nat n -> Unop (T n (Pair (RT m a)))
-> middle4 n = (R.SuccC ~>* R.unSuccC) (scan4' n)
+> middle4 n = inRSuccCs (scan4' n)
 
 Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
 
 > scan5 :: (IsNat n, Num a) => Unop (T n a)
-> scan5 = inRZeros (scan5' nat)
+> scan5 = inRZeroCs (scan5' nat)
 
 > scan5' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan5' Zero      = inZeroC (rightmost (const 0))
