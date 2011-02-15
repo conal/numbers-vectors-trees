@@ -259,13 +259,6 @@ Instead of `inC`, make `n` explicit as a typed number.
 
 > scan4' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan4' Zero      = inZeroC (rightmost (const 0))
-
-< scan4' (Succ n') = inSuccC (fmap after4 . middle4 n' . fmap before4)
-
-or
-
-< scan4' (Succ n') = inSuccC (around4 (middle4 n'))
-
 > scan4' (Succ n') = (inSuccC . around4) (middle4 n')
 
 > before4, after4 :: (IsNat m, Num a) => Unop (Pair (RT m a))
@@ -285,15 +278,6 @@ Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
 
 > scan5' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan5' Zero      = inZeroC (rightmost (const 0))
-
-< scan5' (Succ n') = down . fmap after5 . scan5' n' . fmap before5 . up
-
-< scan5' (Succ n') = inUp (fmap after5 . scan5' n' . fmap before5)
-
-< scan5' (Succ n') = downMap after5 . scan5' n' . mapUp before5
-
-< scan5' (Succ n') = inUp (around5 (scan5' n'))
-
 > scan5' (Succ n') = (inUp . around5) (scan5' n')
 
 > before5, after5 :: (IsNat m, Num a) => Unop (RT (S m) a)
