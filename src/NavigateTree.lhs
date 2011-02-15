@@ -67,15 +67,3 @@ The `down` and `up` conversions often come pairs.
 > inUp   :: (Functor f, IsNat n, IsNat m) =>
 >           (f L.:^ n) ((f R.:^ (S m)) a) :-+> (f L.:^ S n) ((f R.:^ m) a)
 > inUp   = up ~> down
-
-
-Maybe useful:
-
-> mapUp   :: (Functor f, IsNat m) =>
->            ((f R.:^ (S m)) a -> b) -> (f L.:^ (S n)) ((f R.:^ m) a) -> (f L.:^ n) b
-> mapUp   f = fmap f . up
->
-> downMap :: (Functor f, IsNat n) =>
->            (a -> (f R.:^ (S m)) b) -> (f L.:^ n) a -> (f L.:^ (S n)) ((f R.:^ m) b)
-> downMap g = down . fmap g
-
