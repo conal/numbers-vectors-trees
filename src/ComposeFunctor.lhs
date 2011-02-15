@@ -14,7 +14,9 @@ Stability   :  experimental
 N-ary functor composition.
 See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 
-> module ComposeFunctor ((:^)(..),unZeroC,unSuccC,inC,inC2) where
+> module ComposeFunctor
+>   ( (:^)(..),unZeroC,unSuccC,inC,inC2
+>   , inZeroC, inSuccC, inZeroC2, inSuccC2) where
 
 > import Prelude hiding (and)
 
@@ -68,6 +70,25 @@ Operate inside the representation of `f :^ n`:
 >      -> (forall n. (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
 > inC2 l _ (ZeroC a ) (ZeroC b ) = ZeroC (l a  b )
 > inC2 _ b (SuccC as) (SuccC bs) = SuccC (b as bs)
+
+Similar to `inC`, but useful when we can know whether a `ZeroC` or a `SuccC`:
+
+> inZeroC :: (a -> b)
+>         -> ((f :^ Z) a -> (f :^ Z) b)
+> inZeroC h (ZeroC a ) = ZeroC (h a )
+
+> inSuccC :: (f ((f :^ n) a) -> f ((f :^ n) b))
+>         -> ((f :^ (S n)) a -> (f :^ (S n)) b)
+> inSuccC h (SuccC as) = SuccC (h as)
+
+> inZeroC2 :: (a -> b -> c)
+>          -> ((f :^ Z) a -> (f :^ Z) b -> (f :^ Z) c)
+> inZeroC2 h (ZeroC a ) (ZeroC b ) = ZeroC (h a  b )
+
+> inSuccC2 :: (f ((f :^ n) a) -> f ((f :^ n) b) -> f ((f :^ n) c))
+>          -> ((f :^ (S n)) a -> (f :^ (S n)) b -> (f :^ (S n)) c)
+> inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
+
 
 > instance ShowF f => ShowF (f :^ n) where showF = show
 >
