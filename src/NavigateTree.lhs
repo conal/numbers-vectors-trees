@@ -18,7 +18,7 @@ Navigating in trees of trees
 > module NavigateTree where
 
 > import Nat
-
+> import SEC
 > import qualified ComposeFunctor as R
 > import qualified Left           as L
 
@@ -57,3 +57,25 @@ Proofs:
 I don't think it works out to reverse containment of trees (right-folded outside and left-folded inside).
 
 These navigation operations (`up` and `down`) remind me of zippers.
+
+The `down` and `up` conversions often come pairs.
+
+> inDown :: (Functor f, IsNat n, IsNat m) =>
+>           (f L.:^ S n) ((f R.:^ m) a) :-+> (f L.:^ n) ((f R.:^ (S m)) a)
+> inDown = down ~> up
+
+> inUp   :: (Functor f, IsNat n, IsNat m) =>
+>           (f L.:^ n) ((f R.:^ (S m)) a) :-+> (f L.:^ S n) ((f R.:^ m) a)
+> inUp   = up ~> down
+
+
+Maybe useful:
+
+> mapUp   :: (Functor f, IsNat m) =>
+>            ((f R.:^ (S m)) a -> b) -> (f L.:^ (S n)) ((f R.:^ m) a) -> (f L.:^ n) b
+> mapUp   f = fmap f . up
+>
+> downMap :: (Functor f, IsNat n) =>
+>            (a -> (f R.:^ (S m)) b) -> (f L.:^ n) a -> (f L.:^ (S n)) ((f R.:^ m) b)
+> downMap g = down . fmap g
+
