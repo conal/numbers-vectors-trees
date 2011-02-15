@@ -201,12 +201,15 @@ Trees within trees
 
 Another whack: place right-folded trees inside of left-folded trees.
 
-> type RBits n = R.Vec n Bit
+> type RBits m = R.Vec m Bit
 >
-> type RT n = Trie (RBits n)
+> type RT m = Trie (RBits m)
+
+> inRZeros :: T n (RT Z a) :-+> T n a
+> inRZeros = R.ZeroC ~>* R.unZeroC
 
 > scan3 :: Num a => Unop (T n a)
-> scan3 = (R.ZeroC ~>* R.unZeroC) scan3'
+> scan3 = inRZeros scan3'
 
 or
 
@@ -239,7 +242,7 @@ Drop `inC`, and work always at the level of these left/right hybrid trees.
 Instead of `inC`, make `n` explicit as a typed number.
 
 > scan4 :: (IsNat n, Num a) => Unop (T n a)
-> scan4 = (R.ZeroC ~>* R.unZeroC) (scan4' nat)
+> scan4 = inRZeros (scan4' nat)
 
 > scan4' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan4' Zero      = inZeroC (rightmost (const 0))
@@ -265,7 +268,7 @@ or
 Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
 
 > scan5 :: (IsNat n, Num a) => Unop (T n a)
-> scan5 = (R.ZeroC ~>* R.unZeroC) (scan5' nat)
+> scan5 = inRZeros (scan5' nat)
 
 > scan5' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan5' Zero      = inZeroC (rightmost (const 0))
