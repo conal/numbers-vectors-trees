@@ -12,9 +12,9 @@ Stability   :  experimental
 
 Semantic editor combinators
 
-> module SEC ((~>), Unop, (:-+>), invert, inInvert) where
+> module SEC ((~>),(~~>), Unop, (:-+>), invert, inInvert) where
 
-> import Prelude () -- or hiding ((.))
+> import Prelude hiding ((.))
 > import Control.Applicative (Applicative(..))
 > import Data.Traversable
 > import Control.Category (Category(..))
@@ -53,6 +53,14 @@ Like `second` but on function types:
 < result = (.)
 
  ]-->
+
+Another version under a functor.
+Look for a more systematic approach.
+
+> infixr 1 ~~>
+> (~~>) :: Functor f => (a -> b) -> (c -> d) -> (f b -> f c) -> (f a -> f d)
+> f ~~> g = fmap f ~> fmap g
+
 
 A synonym 
 
