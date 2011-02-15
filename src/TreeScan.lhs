@@ -256,9 +256,21 @@ Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
 
 > scan5' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan5' Zero      = inZeroC (rightmost (const 0))
-> scan5' (Succ n') = (up ~> down) (fmap after5 . scan5' n' . fmap before5)
+
+< scan5' (Succ n') = down . fmap after5 . scan5' n' . fmap before5 . up
+
+< scan5' (Succ n') = inUp (fmap after5 . scan5' n' . fmap before5)
+
+< scan5' (Succ n') = downMap after5 . scan5' n' . mapUp before5
+
+< scan5' (Succ n') = inUp (around5 (scan5' n'))
+
+> scan5' (Succ n') = (inUp . around5) (scan5' n')
 
 > before5, after5 :: (IsNat m, Num a) => Unop (RT (S m) a)
 > before5 = R.inSuccC before4
 > after5  = R.inSuccC after4
+
+> around5 :: (Functor f, IsNat m, Num a) => f (RT (S m) a) :-+> f (RT (S m) a)
+> around5 = before5 ~~> after5
 
