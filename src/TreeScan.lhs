@@ -4,7 +4,7 @@
 
 > {-# OPTIONS_GHC -Wall #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
-
+> {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
 
 |
 Module      :  TreeScan
@@ -29,7 +29,7 @@ Stability   :  experimental
 > import qualified Vec            as R
 > import qualified ComposeFunctor as R
 
-< import NavigateTree
+> import NavigateTree
 
  -->
 
@@ -233,4 +233,32 @@ Test it:
 < ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
 < *TreeScan> printT (scan3 t4)
 < ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
+
+Let's take another whack, use `up` and `down` from `NavigateTree`.
+Drop `inC`, and work always at the level of these left/right hybrid trees.
+Instead of `inC`, make `n` explicit as a typed number.
+
+> scan4 :: (IsNat n, Num a) => Unop (T n a)
+> scan4 = (R.ZeroC ~~> R.unZeroC) (scan4' nat)
+
+> scan4' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
+> scan4' Zero      = inZeroC (rightmost (const 0))
+> scan4' (Succ n') = inSuccC (fmap after4 . middle4 n' . fmap before4)
+
+> before4, after4 :: (IsNat m, Num a) => Unop (Pair (RT m a))
+> before4 = twoRights before
+> after4  = twoRights after
+
+> middle4 :: (IsNat m, Num a) => Nat n -> Unop (T n (Pair (RT m a)))
+> middle4 n = (R.SuccC ~~> R.unSuccC) (scan4' n)
+
+Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
+
+> scan5' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
+> scan5' Zero      = inZeroC (rightmost (const 0))
+> scan5' (Succ n') = (up ~> down) (fmap after5 . scan5' n' . fmap before5)
+
+> before5, after5 :: (IsNat m, Num a) => Unop (RT (S m) a)
+> before5 = R.inSuccC before4
+> after5  = R.inSuccC after4
 
