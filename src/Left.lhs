@@ -123,19 +123,19 @@ To do: add `inC2`.
 Similar to `inC`, but useful when we can know whether a `ZeroC` or a `SuccC`:
 
 > inZeroC :: (a -> b)
->         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+>         -> ((f :^ Z) a -> (f :^ Z) b)
 > inZeroC h (ZeroC a ) = ZeroC (h a )
 
-> inSuccC :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b))
->         -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b)
+> inSuccC :: ((f :^ n) (f a) -> (f :^ n) (f b))
+>         -> ((f :^ (S n)) a -> (f :^ (S n)) b)
 > inSuccC h (SuccC as) = SuccC (h as)
 
 > inZeroC2 :: (a -> b -> c)
->          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+>          -> ((f :^ Z) a -> (f :^ Z) b -> (f :^ Z) c)
 > inZeroC2 h (ZeroC a ) (ZeroC b ) = ZeroC (h a  b )
 
-> inSuccC2 :: (forall n. IsNat n => (f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
->          -> (forall n. IsNat n => (f :^ n) a -> (f :^ n) b -> (f :^ n) c)
+> inSuccC2 :: ((f :^ n) (f a) -> (f :^ n) (f b) -> (f :^ n) (f c))
+>          -> ((f :^ (S n)) a -> (f :^ (S n)) b -> (f :^ (S n)) c)
 > inSuccC2 h (SuccC as) (SuccC bs) = SuccC (h as bs)
 
 The instance definitions are completely unchanged, since they are based purely on `Id` and functor composition.
