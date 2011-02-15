@@ -13,7 +13,8 @@ License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-Experimenting with a piece of the scan derivation
+Experimenting with a piece of the scan derivation.
+Transform right-most elements of a right-folded tree.
 
 > module Extremes where
 
