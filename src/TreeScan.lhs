@@ -206,7 +206,7 @@ Another whack: place right-folded trees inside of left-folded trees.
 > type RT n = Trie (RBits n)
 
 > scan3 :: Num a => Unop (T n a)
-> scan3 = (R.ZeroC ~~> R.unZeroC) scan3'
+> scan3 = (R.ZeroC ~>* R.unZeroC) scan3'
 
 or
 
@@ -221,7 +221,7 @@ or
 > after3  = twoRights after
 
 > middle3 :: (IsNat m, Num a) => Unop (T n (Pair (RT m a)))
-> middle3 = (R.SuccC ~~> R.unSuccC) scan3'
+> middle3 = (R.SuccC ~>* R.unSuccC) scan3'
 
 Test it:
 
@@ -239,20 +239,33 @@ Drop `inC`, and work always at the level of these left/right hybrid trees.
 Instead of `inC`, make `n` explicit as a typed number.
 
 > scan4 :: (IsNat n, Num a) => Unop (T n a)
-> scan4 = (R.ZeroC ~~> R.unZeroC) (scan4' nat)
+> scan4 = (R.ZeroC ~>* R.unZeroC) (scan4' nat)
 
 > scan4' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan4' Zero      = inZeroC (rightmost (const 0))
-> scan4' (Succ n') = inSuccC (fmap after4 . middle4 n' . fmap before4)
+
+< scan4' (Succ n') = inSuccC (fmap after4 . middle4 n' . fmap before4)
+
+or
+
+< scan4' (Succ n') = inSuccC (around4 (middle4 n'))
+
+> scan4' (Succ n') = (inSuccC . around4) (middle4 n')
 
 > before4, after4 :: (IsNat m, Num a) => Unop (Pair (RT m a))
 > before4 = twoRights before
 > after4  = twoRights after
 
+> around4 :: (Functor f, IsNat m, Num a) => f (Pair (RT m a)) :-+> f (Pair (RT m a))
+> around4 = before4 ~>* after4
+
 > middle4 :: (IsNat m, Num a) => Nat n -> Unop (T n (Pair (RT m a)))
-> middle4 n = (R.SuccC ~~> R.unSuccC) (scan4' n)
+> middle4 n = (R.SuccC ~>* R.unSuccC) (scan4' n)
 
 Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
+
+> scan5 :: (IsNat n, Num a) => Unop (T n a)
+> scan5 = (R.ZeroC ~>* R.unZeroC) (scan5' nat)
 
 > scan5' :: (IsNat m, Num a) => Nat n -> Unop (T n (RT m a))
 > scan5' Zero      = inZeroC (rightmost (const 0))
@@ -272,5 +285,5 @@ Next, shift the formulation to use `up` and `down`, hiding the trees of pairs.
 > after5  = R.inSuccC after4
 
 > around5 :: (Functor f, IsNat m, Num a) => f (RT (S m) a) :-+> f (RT (S m) a)
-> around5 = before5 ~~> after5
+> around5 = before5 ~>* after5
 
