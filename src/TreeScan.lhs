@@ -182,11 +182,19 @@ The result corresponds to `invert (es :# ss)`, so we'll want to replace each con
 The modified `SuccC` case:
 
 > scan2 :: Num a => Unop (T n a)
-> scan2 = inC (const 0) (fmap after . seconds scan2 . fmap before)
+
+< scan2 = inC (const 0) (fmap after . seconds scan2 . fmap before)
+
+More succinctly:
+
+> scan2 = inC (const 0) (around (seconds scan2))
 
 > before, after :: Num a => Unop (Pair a)
 > before (e :# o) = (e :# e+o)
 > after  (e :# s) = (s :# s+e)
+
+> around :: (Functor f, Num a) => f (Pair a) :-+> f (Pair a)
+> around = before ~>* after
 
 For a more formal derivation, see my notes from 2011-02-08.
 
@@ -219,11 +227,14 @@ We'll want to wrap and unwrap the inner right-folded trees:
 > scan3 = inRZeroCs scan3'
 
 > scan3' :: (IsNat m, Num a) => Unop (T n (RT m a))
-> scan3' = inC (rightmost (const 0)) (fmap after3 . middle3 . fmap before3)
+> scan3' = inC (rightmost (const 0)) (around3 (middle3))
 
 > before3, after3 :: (IsNat m, Num a) => Unop (Pair (RT m a))
 > before3 = twoRights before
 > after3  = twoRights after
+
+> around3 :: (Functor f, IsNat m, Num a) => f (Pair (RT m a)) :-+> f (Pair (RT m a))
+> around3 = before3 ~>* after3
 
 > middle3 :: (IsNat m, Num a) => Unop (T n (Pair (RT m a)))
 > middle3 = inRSuccCs scan3'
