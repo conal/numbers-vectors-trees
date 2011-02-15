@@ -25,6 +25,11 @@ Stability   :  experimental
 > import Pair
 > import SEC
 
+> import Extremes hiding (T)
+> import qualified Vec            as R
+> import qualified ComposeFunctor as R
+
+< import NavigateTree
 
  -->
 
@@ -53,7 +58,8 @@ In the section called "Three Other Algorithms", Guy writes
 
 This algorithm assumes the array size is a power of two, so that each uninterleaving yields the same number of even as odd elements.
 I want to capture this power-of-two assumption statically.
-As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$ have $2^n$ elements and can be statically depth-typed.
+As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$
+have $2^n$ elements and can be statically depth-typed.
 Moreover, as shown in [*A trie for length-typed vectors*], such trees naturally arise as the trie functors for size-typed vectors of bits.
 A bit can represented as the type of natural numbers less than two, as in [*Type-bounded numbers*], but for notational convenience I'll use a specialized `Bit` type and `Pair` functor.
 
@@ -256,12 +262,97 @@ So
 
 Where to go from here?
 
-Trees within trees
-------------------
+Working deeply  within trees
+----------------------------
 
 I know where I'm trying to get to, as in `NavigateTree` and `Extremes`.
 Put the pieces together here, and maybe then I'll see how to derive it.
 
-> atDepth :: IsNat n => Nat m -> T n a :-+> T (m :+: n) a
-> atDepth Zero      h t = h t
-> atDepth (Succ m') h (SuccC t') = SuccC (atDepth m' (seconds h) t')
+> secondsN :: IsNat n => Nat m -> T n a :-+> T (m :+: n) a
+
+< secondsN Zero      h t          = h t
+< secondsN (Succ m') h (SuccC t') = SuccC (secondsN m' (seconds h) t')
+
+Or
+
+< secondsN Zero      h = h
+< secondsN (Succ m') h = inSuccC (secondsN m' (seconds h))
+
+or
+
+> secondsN Zero      = id
+> secondsN (Succ m') = inSuccC . secondsN m' . seconds
+
+Now use `secondsN` in a generalization of `scan`:
+
+< scanAt :: Num a => Nat m -> Unop (T (m :+: n) a)
+< scanAt m = secondsN m scan2
+
+Oops:
+
+    Couldn't match expected type `m :+: n'
+           against inferred type `m :+: n1'
+      NB: `:+:' is a type function, and may not be injective
+    In the expression: secondsN m scan2
+
+which is too bad, since my intent is that `(:+:)` really is injective in each argument (holding the other fixed),
+but I don't know how to persuade GHC.
+There's nothing to stop someone from adding more type instances for `(:+:)`, breaking injectivity.
+
+Same problem:
+
+< fmapN :: Num a => Nat m -> a :-+> T (m :+: n) a
+< fmapN m f = secondsN m (fmap f)
+
+or
+
+< fmapN m = secondsN m . fmap
+
+Try manually:
+
+< fmapN :: Num a => Nat m -> a :-+> RT (m :+: n) a
+< fmapN Zero      = const id
+< fmapN (Succ m') = inSuccC . secondsN m' . seconds . fmap
+
+Same sort of failure.
+
+Trees within trees
+------------------
+
+Another whack: place right-folded trees inside of left-folded trees.
+
+> type RBits n = R.Vec n Bit
+>
+> type RT n = Trie (RBits n)
+
+> scan3 :: Num a => Unop (T n a)
+> scan3 = (R.ZeroC ~~> R.unZeroC) scan3'
+
+or
+
+< scan3 = fmap R.unZeroC . scan3' . fmap R.ZeroC
+
+
+> scan3' :: (IsNat m, Num a) => Unop (T n (RT m a))
+> scan3' = inC (rightmost (const 0)) (after3 . middle3 . before3)
+
+> before3, middle3, after3 :: (IsNat m, Num a) => Unop (T n (Pair (RT m a)))
+
+> before3 = (fmap.twoRights) (\ (e :# o) -> (e :# e+o))
+> after3  = (fmap.twoRights) (\ (e :# s) -> (s :# s+e))
+
+> middle3 = (R.SuccC ~~> R.unSuccC) scan3'
+
+Test it:
+
+< *TreeScan> printT t4
+< ((((1,2),(3,4)),((5,6),(7,8))),(((9,10),(11,12)),((13,14),(15,16))))
+< *TreeScan> printT (scan1 t4)
+< ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
+< *TreeScan> printT (scan2 t4)
+< ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
+< *TreeScan> printT (scan3 t4)
+< ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
+
+
+
