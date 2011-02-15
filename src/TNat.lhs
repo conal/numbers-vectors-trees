@@ -1,6 +1,7 @@
  <!-- -*- markdown -*-
 
 > {-# LANGUAGE GADTs, KindSignatures, EmptyDataDecls #-}
+> {-# LANGUAGE TypeFamilies, TypeOperators, UndecidableInstances #-}
 > {-# OPTIONS_GHC -Wall #-}
 
 |
@@ -38,4 +39,18 @@ Some handy aliases:
 > type NineT  = S EightT
 > type TenT   = S NineT
 
+Arithmetic
+----------
 
+> infixl 6 :+:
+> infixl 7 :*:
+
+> type family n :+: m
+> type instance Z   :+: m = m
+> type instance S n :+: m = S (n :+: m)
+
+> type family n :*: m
+> type instance Z   :*: m = Z
+> type instance S n :*: m = n :+: (n :*: m)
+
+The last instance requires `UndecidableInstances`.
