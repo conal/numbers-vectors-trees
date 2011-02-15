@@ -182,11 +182,11 @@ The result corresponds to `invert (es :# ss)`, so we'll want to replace each con
 The modified `SuccC` case:
 
 > scan2 :: Num a => Unop (T n a)
-> scan2 = inC (const 0) (after . seconds scan2 . before)
+> scan2 = inC (const 0) (fmap after . seconds scan2 . fmap before)
 
-> before, after :: (Functor f, Num a) => Unop (f (Pair a))
-> before = fmap (\ (e :# o) -> (e :# e+o))
-> after  = fmap (\ (e :# s) -> (s :# s+e))
+> before, after :: Num a => Unop (Pair a)
+> before (e :# o) = (e :# e+o)
+> after  (e :# s) = (s :# s+e)
 
 For a more formal derivation, see my notes from 2011-02-08.
 
@@ -201,7 +201,7 @@ Flattening the recursion
 
 Expand `scan2` once in the context of its own definition:
 
-< seconds (inC (const 0) (after . seconds scan2 . before))
+< seconds (inC (const 0) (fmap after . seconds scan2 . fmap before))
 
 < seconds = inInvert . second
 
@@ -334,13 +334,13 @@ or
 
 
 > scan3' :: (IsNat m, Num a) => Unop (T n (RT m a))
-> scan3' = inC (rightmost (const 0)) (after3 . middle3 . before3)
+> scan3' = inC (rightmost (const 0)) (fmap after3 . middle3 . fmap before3)
 
-> before3, middle3, after3 :: (IsNat m, Num a) => Unop (T n (Pair (RT m a)))
+> before3, after3 :: (IsNat m, Num a) => Unop (Pair (RT m a))
+> before3 = twoRights before
+> after3  = twoRights after
 
-> before3 = (fmap.twoRights) (\ (e :# o) -> (e :# e+o))
-> after3  = (fmap.twoRights) (\ (e :# s) -> (s :# s+e))
-
+> middle3 :: (IsNat m, Num a) => Unop (T n (Pair (RT m a)))
 > middle3 = (R.SuccC ~~> R.unSuccC) scan3'
 
 Test it:
@@ -353,6 +353,4 @@ Test it:
 < ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
 < *TreeScan> printT (scan3 t4)
 < ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
-
-
 
