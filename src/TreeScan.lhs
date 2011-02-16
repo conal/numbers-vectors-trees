@@ -48,7 +48,7 @@ Introduction
 ============
 
 Guy Blelloch's paper [*Programming parallel algorithms*] includes a parallel algorithm for prefix sum.
-It applies not just numeric addition but to all monoids.
+It applies not just to numeric addition but to all monoids (types with an associative binary operation and a corresponding identity value).
 Associativity and indentity allow a divide-and-conquer approach.
 
 In the section called "Three Other Algorithms", Guy writes
