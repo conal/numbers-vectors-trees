@@ -58,8 +58,7 @@ In the section called "Three Other Algorithms", Guy writes
 
 This algorithm assumes the array size is a power of two, so that each uninterleaving yields the same number of even as odd elements.
 I want to capture this power-of-two assumption statically.
-As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$
-have $2^n$ elements and can be statically depth-typed.
+As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$ have $2^n$ elements and can be statically depth-typed.
 Moreover, as shown in [*A trie for length-typed vectors*], such trees naturally arise as the trie functors for size-typed vectors of bits.
 A bit can represented as the type of natural numbers less than two, as in [*Type-bounded numbers*], but for notational convenience I'll use a specialized `Bit` type and `Pair` functor.
 
@@ -74,7 +73,7 @@ Equivalently,
 <          = Trie Bit :^ n
 <          = Pair :^ n
 
-where `f :^ n` is the $n$-ary composition of the functor `f` with itself.
+where `f :^ n` is the $n$-ary [composition][*A trie for length-typed vectors*] of the functor `f` with itself.
 
 For now, this module is light on commentary.
 To do: extract prose from the other module I started (without size-typing).
