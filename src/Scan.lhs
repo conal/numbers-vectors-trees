@@ -7,7 +7,7 @@
 < {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
 
 |
-Module      :  CanScan
+Module      :  Scan
 Copyright   :  (c) Conal Elliott 2011
 License     :  BSD3
 Maintainer  :  conal@conal.net
@@ -15,7 +15,7 @@ Stability   :  experimental
 
 A class for scans
 
-> module CanScan where
+> module Scan where
 
 > import Prelude hiding (zip,unzip)
 
