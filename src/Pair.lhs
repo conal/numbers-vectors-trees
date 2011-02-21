@@ -28,7 +28,7 @@ Simple 'Bit' type & 'Pair' functor
 > import FunctorCombo.StrictMemo (HasTrie(..))
 
 > import SEC
-> import CanScan (Scan(..))
+> import Scan (Scan(..))
 
 
  -->
