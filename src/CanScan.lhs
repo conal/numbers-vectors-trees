@@ -42,13 +42,12 @@ A class for scans
 >   scanR (a :# b) = (a `mappend` b, (b :# mempty))
 
 > instance (Scan g, Scan f, Functor f, Applicative g) => Scan (g :. f) where
->   scanL = first (O . fmap adjust . zip)  -- or O . uncurry (liftA2 adjust)
+>   scanL = first (O . fmap adjust . zip)  -- or O . uncurry (liftA2 (curry adjust))
 >         . assocL
 >         . second scanL
 >         . unzip
 >         . fmap scanL
 >         . unO
-
 
 > unzip :: Functor g => g (a,b) -> (g a, g b)
 > unzip = fmap fst &&& fmap snd
@@ -59,9 +58,10 @@ A class for scans
 > assocL :: (a,(b,c)) -> ((a,b),c)
 > assocL    (a,(b,c)) =  ((a,b),c)
 
-Type derivation:
+> adjust :: (Functor f, Monoid m) => (f m, m) -> (f m)
+> adjust (ms,m) = mappend m <$> ms
 
-< Monoid m
+Type derivation:
 
 < gofm                   :: (g :. f) m
 < unO                 '' :: g (f m)
@@ -73,6 +73,3 @@ Type derivation:
 < first (fmap adjust) '' :: (g (f m), m)
 < first O             '' :: ((g :. f) m, m)
 
-
-> adjust :: (Functor f, Monoid m) => (f m, m) -> (f m)
-> adjust (ms,m) = mappend m <$> ms
