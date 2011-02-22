@@ -30,36 +30,45 @@ A class for scans
  <!-- references -->
  <!-- -->
 
-> class Scan f where
+Define a class for functors that support left & right scans.
+They could just as well be two classes.
+
+> class ScanL f where
 >   scanL :: Monoid m => f m -> (f m, m)
+>
+> class ScanR f where
 >   scanR :: Monoid m => f m -> (m, f m)
 
-> instance Scan Id where
+> instance ScanL Id where
 >   scanL (Id m) = (Id mempty, m)
+> instance ScanR Id where
 >   scanR (Id m) = (m, Id mempty)
 
-> instance (Scan f, Scan g) => Scan (f :+: g) where
+> instance (ScanL f, ScanL g) => ScanL (f :+: g) where
 >   scanL (InL fa) = first  InL (scanL fa)
 >   scanL (InR ga) = first  InR (scanL ga)
+> instance (ScanR f, ScanR g) => ScanR (f :+: g) where
 >   scanR (InL fa) = second InL (scanR fa)
 >   scanR (InR ga) = second InR (scanR ga)
 
-> instance (Scan f, Scan g, Functor f, Functor g) => Scan (f :*: g) where
+> instance (ScanL f, ScanL g, Functor g) => ScanL (f :*: g) where
 >   scanL (fa :*: ga) = (fa' :*: ((af `mappend`) <$> ga'), af `mappend` ag)
 >    where (fa',af) = scanL fa
 >          (ga',ag) = scanL ga
+> instance (ScanR f, ScanR g, Functor f) => ScanR (f :*: g) where
 >   scanR (fa :*: ga) = (af `mappend` ag, ((`mappend` ag) <$> fa') :*: ga')
 >    where (af,fa') = scanR fa
 >          (ag,ga') = scanR ga
 
-> instance (Scan g, Scan f, Functor f, Applicative g) => Scan (g :. f) where
->   scanL = first (O . fmap adjustL . zip)  -- or O . uncurry (liftA2 (curry adjustL))
+> instance (ScanL g, ScanL f, Functor f, Applicative g) => ScanL (g :. f) where
+>   scanL = first (O . fmap adjustL . zip)
 >         . assocL
 >         . second scanL
 >         . unzip
 >         . fmap scanL
 >         . unO
->   scanR = second (O . fmap adjustR . zip)  -- or O . uncurry (liftA2 (curry adjustL))
+> instance (ScanR g, ScanR f, Functor f, Applicative g) => ScanR (g :. f) where
+>   scanR = second (O . fmap adjustR . zip)
 >         . assocR
 >         . first scanR
 >         . unzip
