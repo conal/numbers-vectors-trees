@@ -28,7 +28,7 @@ Simple 'Bit' type & 'Pair' functor
 > import FunctorCombo.StrictMemo (HasTrie(..))
 
 > import SEC
-> import Scan (Scan(..))
+> import Scan (ScanL(..),ScanR(..))
 
 
  -->
@@ -63,8 +63,9 @@ Other instances
 > instance Traversable Pair where
 >   sequenceA (fa :# fb) = (:#) <$> fa <*> fb
 
-> instance Scan Pair where
+> instance ScanL Pair where
 >   scanL (a :# b) = ((mempty :# a), a `mappend` b)
+> instance ScanR Pair where
 >   scanR (a :# b) = (a `mappend` b, (b :# mempty))
 
 I might like to use use `Bool` instead of `Bit`, and replace the current `HasTrie Bool` instance.
