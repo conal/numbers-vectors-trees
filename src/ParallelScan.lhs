@@ -21,7 +21,7 @@ Stability   :  experimental
 
 A class for parallel scans, with instances for functor combinators
 
-> module Scan where
+> module ParallelScan where
 
 > import Prelude hiding (zip,unzip)
 
@@ -76,7 +76,7 @@ Separating out this value eliminates the search.
 
 Define a class with methods for prefix and suffix scan:
 
-> class ScanL f where
+> class Scan f where
 >   scanL, scanR :: Monoid m => f m -> (m, f m)
 
 Prefix scans (`scanL`) accumulate moving left-to-right, while suffix scans (`scanR`) accumulate moving right-to-left.
@@ -95,7 +95,7 @@ With GHC's `DeriveFunctor` option, we could also derive a `Functor` instance, bu
 
 The scans:
 
-< instance ScanL Pair where
+< instance Scan Pair where
 <   scanL (a :# b) = (a `mappend` b, (mempty :# a))
 <   scanR (a :# b) = (a `mappend` b, (b :# mempty))
 
@@ -144,7 +144,7 @@ The identity functor is easiest.
 
 There are no values to accumulate, so the final result (fold) is `mempty`.
 
-> instance ScanL (Const x) where
+> instance Scan (Const x) where
 >   scanL (Const x) = (mempty, Const x)
 >   scanR           = scanL
 
@@ -153,7 +153,7 @@ Identity
 
 The identity functor is nearly as easy.
 
-> instance ScanL Id where
+> instance Scan Id where
 >   scanL (Id m) = (m, Id mempty)
 >   scanR        = scanL
 
@@ -162,7 +162,7 @@ Sum
 
 Scanning in a sum is just scanning in a summand:
 
-> instance (ScanL f, ScanL g) => ScanL (f :+: g) where
+> instance (Scan f, Scan g) => Scan (f :+: g) where
 >   scanL (InL fa) = second InL (scanL fa)
 >   scanL (InR ga) = second InR (scanL ga)
 > 
@@ -175,7 +175,7 @@ Product
 Product scannning is a little trickier.
 Scan each of the two parts separately to get, and then combine the final (`fold`) part of one result with each of the non-final elements of the other.
 
-< instance (ScanL f, ScanL g, Functor g) => ScanL (f :*: g) where
+< instance (Scan f, Scan g, Functor g) => Scan (f :*: g) where
 <   scanL (fa :*: ga) = (af `mappend` ag, fa' :*: ((af `mappend`) <$> ga'))
 <    where (af,fa') = scanL fa
 <          (ag,ga') = scanL ga
@@ -186,7 +186,7 @@ Scan each of the two parts separately to get, and then combine the final (`fold`
 
 Here's a variant that factors out the `mappend`-adjustments.
 
-> instance (ScanL f, ScanL g, Functor f, Functor g) => ScanL (f :*: g) where
+> instance (Scan f, Scan g, Functor f, Functor g) => Scan (f :*: g) where
 >   scanL (fa :*: ga) = (adjust ag, fa' :*: (adjust <$> ga'))
 >    where (af,fa') = scanL fa
 >          (ag,ga') = scanL ga
@@ -252,7 +252,7 @@ Then `scanR`:
 
 Putting together the pieces and simplifying just a bit leads to the method definitions:
 
-> instance (ScanL g, ScanL f, Functor f, Applicative g) => ScanL (g :. f) where
+> instance (Scan g, Scan f, Functor f, Applicative g) => Scan (g :. f) where
 >   scanL = second (O . fmap adjustL . zip)
 >         . assocR
 >         . first scanL
