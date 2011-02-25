@@ -1,4 +1,3 @@
- <--[ -*- markdown -*- ]-->
 ---
 title: Classes for scanning
 tags: scan
