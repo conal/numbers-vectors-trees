@@ -1,10 +1,11 @@
+ <--[ -*- markdown -*- ]-->
 ---
 title: Classes for scanning
 tags: scan
 url: http://conal.net/blog/posts/deriving-tree-scans/
 ...
 
- <!--[ -*- markdown -*-
+ <!--[ 
 
 > {-# LANGUAGE TypeOperators #-}
 
@@ -193,8 +194,6 @@ A couple of utility functions:
 >
 > adjustR :: (Functor f, Monoid m) => m -> f m -> f m
 > m `adjustR` ms = (`mappend` m) <$> ms
-
-Hm. Can I swap arguments?
 
 And the instances:
 
