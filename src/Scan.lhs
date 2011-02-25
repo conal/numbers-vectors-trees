@@ -60,7 +60,6 @@ After defining the classes and giving a simple example, I'll give a simple & gen
 
  <!--more-->
 
-
 Generalizing list scans
 =======================
 
@@ -68,11 +67,12 @@ The left and right scan functions on lists have an awkward feature.
 The output list has one more element than the input list, corresponding to the fact that the number of prefixes ([`inits`]) of a list is one more than the number of elements, and similarly for suffixes ([`tails`]).
 
 While it's easy to extend a list by adding one more element, it's not easy with other functors.
-So I'll instead change the interface to produce an output of exactly the same shape, plus one extra element.
+In [*Deriving tree scans*], I simply removed the `mempty` element from the scan.
+In this post, I'll instead change the interface to produce an output of exactly the same shape, plus one extra element.
 The extra element will equal a `fold` over the complete input.
-
-Alternatively, we could remove the zero element from the scan, as in [*Deriving tree scans*].
-As we go, I'll point out some advantages of each.
+If you recall, we had to search for that complete fold in an input subtree in order to adjust the other subtree.
+(See `headT` and `lastT` and their generalizations in [*Deriving tree scans*].)
+Separating out this value eliminates the search.
 
 Define a single-method class for each of prefix and suffix scan:
 
@@ -134,10 +134,10 @@ To see how to scan over a broad range of functors, let's look at each of the fun
 
  <!--[
 
-< newtype Id a       = Id a
-< data (f :+: g) a   = InL (f a) | InR (g a)
-< data (f :*: g) a   = f a :*: g a
-< newtype (g :. f) a = O (g (f a))
+< newtype Id        a = Id a
+< data    (f :+: g) a = InL (f a) | InR (g a)
+< data    (f :*: g) a = f a :*: g a
+< newtype (g  :. f) a = O (g (f a))
 
  ]-->
 
@@ -170,16 +170,37 @@ The identity functor is nearly as easy.
 Sum
 ---
 
-
+Scanning in a sum is just scanning in a summand:
 
 > instance (ScanL f, ScanL g) => ScanL (f :+: g) where
 >   scanL (InL fa) = first  InL (scanL fa)
 >   scanL (InR ga) = first  InR (scanL ga)
+>
+> instance (ScanR f, ScanR g) => ScanR (f :+: g) where
+>   scanR (InL fa) = second InL (scanR fa)
+>   scanR (InR ga) = second InR (scanR ga)
+
+Product
+-------
+
+Product scannning is a little trickier.
+Scan each of the two parts separately to get, and then combine the final (`fold`) part of one result with each of the non-final elements of the other.
 
 > instance (ScanL f, ScanL g, Functor g) => ScanL (f :*: g) where
 >   scanL (fa :*: ga) = (fa' :*: ((af `mappend`) <$> ga'), af `mappend` ag)
 >    where (fa',af) = scanL fa
 >          (ga',ag) = scanL ga
+>
+> instance (ScanR f, ScanR g, Functor f) => ScanR (f :*: g) where
+>   scanR (fa :*: ga) = (af `mappend` ag, ((`mappend` ag) <$> fa') :*: ga')
+>    where (af,fa') = scanR fa
+>          (ag,ga') = scanR ga
+
+Composition
+-----------
+
+Finally, composition is the trickiest.
+I arrived at the following definitions 
 
 > instance (ScanL g, ScanL f, Functor f, Applicative g) => ScanL (g :. f) where
 >   scanL = first (O . fmap adjustL . zip)
@@ -187,6 +208,14 @@ Sum
 >         . second scanL
 >         . unzip
 >         . fmap scanL
+>         . unO
+>
+> instance (ScanR g, ScanR f, Functor f, Applicative g) => ScanR (g :. f) where
+>   scanR = second (O . fmap adjustR . zip)
+>         . assocR
+>         . first scanR
+>         . unzip
+>         . fmap scanR
 >         . unO
 
 Helpers:
@@ -199,9 +228,16 @@ Helpers:
 
 > assocL :: (a,(b,c)) -> ((a,b),c)
 > assocL    (a,(b,c)) =  ((a,b),c)
+>
+> assocR :: ((a,b),c) -> (a,(b,c))
+> assocR    ((a,b),c) =  (a,(b,c))
+
 
 > adjustL :: (Functor f, Monoid m) => (f m, m) -> f m
 > adjustL (ms,m) = (m `mappend`) <$> ms
+>
+> adjustR :: (Functor f, Monoid m) => (m, f m) -> f m
+> adjustR (m,ms) = (`mappend` m) <$> ms
 
 Type-directed derivations:
 
@@ -215,38 +251,6 @@ Type-directed derivations:
 < first (fmap adjustL) '' :: (g (f m), m)
 < first O              '' :: ((g :. f) m, m)
 
-
-Right scans
------------
-
->
-> instance (ScanR f, ScanR g) => ScanR (f :+: g) where
->   scanR (InL fa) = second InL (scanR fa)
->   scanR (InR ga) = second InR (scanR ga)
->
-> instance (ScanR f, ScanR g, Functor f) => ScanR (f :*: g) where
->   scanR (fa :*: ga) = (af `mappend` ag, ((`mappend` ag) <$> fa') :*: ga')
->    where (af,fa') = scanR fa
->          (ag,ga') = scanR ga
->
-> instance (ScanR g, ScanR f, Functor f, Applicative g) => ScanR (g :. f) where
->   scanR = second (O . fmap adjustR . zip)
->         . assocR
->         . first scanR
->         . unzip
->         . fmap scanR
->         . unO
-
-Helpers:
-
-> assocR :: ((a,b),c) -> (a,(b,c))
-> assocR    ((a,b),c) =  (a,(b,c))
->
-> adjustR :: (Functor f, Monoid m) => (m, f m) -> f m
-> adjustR (m,ms) = (`mappend` m) <$> ms
-
-Type-directed derivation:
-
 < gofm                     :: (g :. f) m
 < unO                   '' :: g (f m)
 < fmap scanR            '' :: g (m, f m)
@@ -256,4 +260,3 @@ Type-directed derivation:
 < second zip            '' :: (m, (g (m, f m)))
 < second (fmap adjustR) '' :: (m, (g (f m)))
 < second O              '' :: (m, ((g :. f) m))
-
