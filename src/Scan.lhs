@@ -74,16 +74,12 @@ If you recall, we had to search for that complete fold in an input subtree in or
 (See `headT` and `lastT` and their generalizations in [*Deriving tree scans*].)
 Separating out this value eliminates the search.
 
-Define a single-method class for each of prefix and suffix scan:
+Define a class with methods for prefix and suffix scan:
 
 > class ScanL f where
->   scanL :: Monoid m => f m -> (f m, m)
->
-> class ScanR f where
->   scanR :: Monoid m => f m -> (m, f m)
+>   scanL, scanR :: Monoid m => f m -> (m, f m)
 
-Note the difference in the result types, to emphasize the intended meanings.
-Prefix scans accumulate moving left-to-right, while suffix scans accumulate moving right-to-left.
+Prefix scans (`scanL`) accumulate moving left-to-right, while suffix scans (`scanR`) accumulate moving right-to-left.
 
 A simple example: pairs
 -----------------------
@@ -100,9 +96,7 @@ With GHC's `DeriveFunctor` option, we could also derive a `Functor` instance, bu
 The scans:
 
 < instance ScanL Pair where
-<   scanL (a :# b) = ((mempty :# a), a `mappend` b)
-<
-< instance ScanR Pair where
+<   scanL (a :# b) = (a `mappend` b, (mempty :# a))
 <   scanR (a :# b) = (a `mappend` b, (b :# mempty))
 
 As you can see, if we eliminated the `mempty` elements, we could shift to the left or right and forgo the extra result.
@@ -151,10 +145,8 @@ The identity functor is easiest.
 There are no values to accumulate, so the final result (fold) is `mempty`.
 
 > instance ScanL (Const x) where
->   scanL (Const x) = (Const x, mempty)
->
-> instance ScanR (Const x) where
->   scanR (Const x) = (mempty, Const x)
+>   scanL (Const x) = (mempty, Const x)
+>   scanR           = scanL
 
 Identity
 --------
@@ -162,10 +154,8 @@ Identity
 The identity functor is nearly as easy.
 
 > instance ScanL Id where
->   scanL (Id m) = (Id mempty, m)
->
-> instance ScanR Id where
->   scanR (Id m) = (m, Id mempty)
+>   scanL (Id m) = (m, Id mempty)
+>   scanR        = scanL
 
 Sum
 ---
@@ -173,10 +163,9 @@ Sum
 Scanning in a sum is just scanning in a summand:
 
 > instance (ScanL f, ScanL g) => ScanL (f :+: g) where
->   scanL (InL fa) = first  InL (scanL fa)
->   scanL (InR ga) = first  InR (scanL ga)
->
-> instance (ScanR f, ScanR g) => ScanR (f :+: g) where
+>   scanL (InL fa) = second InL (scanL fa)
+>   scanL (InR ga) = second InR (scanL ga)
+> 
 >   scanR (InL fa) = second InL (scanR fa)
 >   scanR (InR ga) = second InR (scanR ga)
 
@@ -187,24 +176,22 @@ Product scannning is a little trickier.
 Scan each of the two parts separately to get, and then combine the final (`fold`) part of one result with each of the non-final elements of the other.
 
 < instance (ScanL f, ScanL g, Functor g) => ScanL (f :*: g) where
-<   scanL (fa :*: ga) = (fa' :*: ((af `mappend`) <$> ga'), af `mappend` ag)
-<    where (fa',af) = scanL fa
-<          (ga',ag) = scanL ga
+<   scanL (fa :*: ga) = (af `mappend` ag, fa' :*: ((af `mappend`) <$> ga'))
+<    where (af,fa') = scanL fa
+<          (ag,ga') = scanL ga
 <
-< instance (ScanR f, ScanR g, Functor f) => ScanR (f :*: g) where
 <   scanR (fa :*: ga) = (af `mappend` ag, ((`mappend` ag) <$> fa') :*: ga')
 <    where (af,fa') = scanR fa
 <          (ag,ga') = scanR ga
 
 Here's a variant that factors out the `mappend`-adjustments.
 
-> instance (ScanL f, ScanL g, Functor g) => ScanL (f :*: g) where
->   scanL (fa :*: ga) = (fa' :*: (adjust <$> ga'), adjust ag)
->    where (fa',af) = scanL fa
->          (ga',ag) = scanL ga
+> instance (ScanL f, ScanL g, Functor f, Functor g) => ScanL (f :*: g) where
+>   scanL (fa :*: ga) = (adjust ag, fa' :*: (adjust <$> ga'))
+>    where (af,fa') = scanL fa
+>          (ag,ga') = scanL ga
 >          adjust   = (af `mappend`)
 >
-> instance (ScanR f, ScanR g, Functor f) => ScanR (f :*: g) where
 >   scanR (fa :*: ga) = (adjust af, (adjust <$> fa') :*: ga')
 >    where (af,fa') = scanR fa
 >          (ag,ga') = scanR ga
@@ -218,8 +205,7 @@ Finally, composition is the trickiest.
 
 The target signatures:
 
-<   scanL :: Monoid m => (g :. f) m -> ((g :. f) m, m)
-<   scanR :: Monoid m => (g :. f) m -> (m, (g :. f) m)
+<   scanL, scanR :: Monoid m => (g :. f) m -> (m, (g :. f) m)
 
 To find the prefix and suffix scan definitions, fiddle with types beginning at the domain type for `scanL` or `scanR` and arriving at the range type.
 
@@ -231,31 +217,28 @@ Some helpers:
 > unzip :: Functor g => g (a,b) -> (g a, g b)
 > unzip = fmap fst &&& fmap snd
 
-> assocL :: (a,(b,c)) -> ((a,b),c)
-> assocL    (a,(b,c)) =  ((a,b),c)
->
 > assocR :: ((a,b),c) -> (a,(b,c))
 > assocR    ((a,b),c) =  (a,(b,c))
 
-> adjustL :: (Functor f, Monoid m) => (f m, m) -> f m
-> adjustL (ms, m) = (m `mappend`) <$> ms
+> adjustL :: (Functor f, Monoid m) => (m, f m) -> f m
+> adjustL (m, ms) = (m `mappend`) <$> ms
 >
 > adjustR :: (Functor f, Monoid m) => (m, f m) -> f m
 > adjustR (m, ms) = (`mappend` m) <$> ms
 
 First `scanL`:
 
-< gofm                    :: (g :. f) m
-< unO                  '' :: g (f m)
-< fmap scanL           '' :: g (f m, m)
-< unzip                '' :: (g (f m), g m)
-< second scanL         '' :: (g (f m), (g m, m))
-< assocL               '' :: ((g (f m), g m), m)
-< first zip            '' :: (g (f m, m), m)
-< first (fmap adjustL) '' :: (g (f m), m)
-< first O              '' :: ((g :. f) m, m)
+< gofm                     :: (g :. f) m
+< unO                   '' :: g (f m)
+< fmap scanL            '' :: g (m, f m)
+< unzip                 '' :: (g m, g (f m))
+< first scanL           '' :: ((m, g m), g (f m))
+< assocL                '' :: (m, (g m, g (f m)))
+< secon zip             '' :: (m, g (m, f m))
+< second (fmap adjustL) '' :: (m, g (f m))
+< second O              '' :: (m, (g :. f) m)
 
-Then `scanr`:
+Then `scanR`:
 
 < gofm                     :: (g :. f) m
 < unO                   '' :: g (f m)
@@ -270,14 +253,13 @@ Then `scanr`:
 Putting together the pieces and simplifying just a bit leads to the method definitions:
 
 > instance (ScanL g, ScanL f, Functor f, Applicative g) => ScanL (g :. f) where
->   scanL = first (O . fmap adjustL . zip)
->         . assocL
->         . second scanL
+>   scanL = second (O . fmap adjustL . zip)
+>         . assocR
+>         . first scanL
 >         . unzip
 >         . fmap scanL
 >         . unO
 >
-> instance (ScanR g, ScanR f, Functor f, Applicative g) => ScanR (g :. f) where
 >   scanR = second (O . fmap adjustR . zip)
 >         . assocR
 >         . first scanR
