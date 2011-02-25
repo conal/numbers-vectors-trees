@@ -128,6 +128,7 @@ To see how to scan over a broad range of functors, let's look at each of the fun
 
  <!--[
 
+< newtype Const x   a = Const x
 < newtype Id        a = Id a
 < data    (f :+: g) a = InL (f a) | InR (g a)
 < data    (f :*: g) a = f a :*: g a
