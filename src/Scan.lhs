@@ -186,13 +186,25 @@ Product
 Product scannning is a little trickier.
 Scan each of the two parts separately to get, and then combine the final (`fold`) part of one result with each of the non-final elements of the other.
 
+A couple of utility functions:
+
+> adjustL :: (Functor f, Monoid m) => f m -> m -> f m
+> ms `adjustL` m = (m `mappend`) <$> ms
+>
+> adjustR :: (Functor f, Monoid m) => m -> f m -> f m
+> m `adjustR` ms = (`mappend` m) <$> ms
+
+Hm. Can I swap arguments?
+
+And the instances:
+
 > instance (ScanL f, ScanL g, Functor g) => ScanL (f :*: g) where
->   scanL (fa :*: ga) = (fa' :*: ((af `mappend`) <$> ga'), af `mappend` ag)
+>   scanL (fa :*: ga) = (fa' :*: (ga' `adjustL` af), af `mappend` ag)
 >    where (fa',af) = scanL fa
 >          (ga',ag) = scanL ga
 >
 > instance (ScanR f, ScanR g, Functor f) => ScanR (f :*: g) where
->   scanR (fa :*: ga) = (af `mappend` ag, ((`mappend` ag) <$> fa') :*: ga')
+>   scanR (fa :*: ga) = (af `mappend` ag, (ag `adjustR` fa') :*: ga')
 >    where (af,fa') = scanR fa
 >          (ag,ga') = scanR ga
 
@@ -200,31 +212,11 @@ Composition
 -----------
 
 Finally, composition is the trickiest.
-I arrived at the following definitions 
 
-> instance (ScanL g, ScanL f, Functor f, Applicative g) => ScanL (g :. f) where
->   scanL = first (O . fmap adjustL . zip)
->         . assocL
->         . second scanL
->         . unzip
->         . fmap scanL
->         . unO
->
-> instance (ScanR g, ScanR f, Functor f, Applicative g) => ScanR (g :. f) where
->   scanR = second (O . fmap adjustR . zip)
->         . assocR
->         . first scanR
->         . unzip
->         . fmap scanR
->         . unO
-
-Helpers:
+First some helpers:
 
 > unzip :: Functor g => g (a,b) -> (g a, g b)
 > unzip = fmap fst &&& fmap snd
->
-> zip :: Applicative g => (g a, g b) -> g (a,b)
-> zip = uncurry (liftA2 (,))
 
 > assocL :: (a,(b,c)) -> ((a,b),c)
 > assocL    (a,(b,c)) =  ((a,b),c)
@@ -232,31 +224,50 @@ Helpers:
 > assocR :: ((a,b),c) -> (a,(b,c))
 > assocR    ((a,b),c) =  (a,(b,c))
 
+The target signatures:
 
-> adjustL :: (Functor f, Monoid m) => (f m, m) -> f m
-> adjustL (ms,m) = (m `mappend`) <$> ms
+<   scanL :: Monoid m => (g :. f) m -> ((g :. f) m, m)
+<   scanR :: Monoid m => (g :. f) m -> (m, (g :. f) m)
+
+To find the prefix and suffix scan definitions, fiddle with types beginning at the domain type for `scanL` or `scanR` and arriving at the range type.
+First `scanL`:
+
+< gofm                                :: (g :. f) m
+< unO                              '' :: g (f m)
+< fmap scanL                       '' :: g (f m, m)
+< unzip                            '' :: (g (f m), g m)
+< second scanL                     '' :: (g (f m), (g m, m))
+< assocL                           '' :: ((g (f m), g m), m)
+< first (uncurry (liftA2 adjustL)) '' :: (g (f m), m)
+< first O                          '' :: ((g :. f) m, m)
+
+Then `scanr`:
+
+< gofm                                 :: (g :. f) m
+< unO                               '' :: g (f m)
+< fmap scanR                        '' :: g (m, f m)
+< unzip                             '' :: (g m, g (f m))
+< first scanR                       '' :: ((m, g m), g (f m))
+< assocR                            '' :: (m, (g m, g (f m)))
+< second (uncurry (liftA2 adjustR)) '' :: (m, (g (f m)))
+< second O                          '' :: (m, ((g :. f) m))
+
+Putting together the pieces and simplifying just a bit leads to the method definitions:
+
+> instance (ScanL g, ScanL f, Functor f, Applicative g)
+>       => ScanL (g :. f) where
+>   scanL = first (O . uncurry (liftA2 adjustL))
+>         . assocL
+>         . second scanL
+>         . unzip
+>         . fmap scanL
+>         . unO
 >
-> adjustR :: (Functor f, Monoid m) => (m, f m) -> f m
-> adjustR (m,ms) = (`mappend` m) <$> ms
-
-Type-directed derivations:
-
-< gofm                    :: (g :. f) m
-< unO                  '' :: g (f m)
-< fmap scanL           '' :: g (f m, m)
-< unzip                '' :: (g (f m), g m)
-< second scanL         '' :: (g (f m), (g m, m))
-< assocL               '' :: ((g (f m), g m), m)
-< first zip            '' :: (g (f m, m), m)
-< first (fmap adjustL) '' :: (g (f m), m)
-< first O              '' :: ((g :. f) m, m)
-
-< gofm                     :: (g :. f) m
-< unO                   '' :: g (f m)
-< fmap scanR            '' :: g (m, f m)
-< unzip                 '' :: (g m, g (f m))
-< first scanR           '' :: ((m, g m), g (f m))
-< assocR                '' :: (m, (g m, g (f m)))
-< second zip            '' :: (m, (g (m, f m)))
-< second (fmap adjustR) '' :: (m, (g (f m)))
-< second O              '' :: (m, ((g :. f) m))
+> instance (ScanR g, ScanR f, Functor f, Applicative g)
+>       => ScanR (g :. f) where
+>   scanR = second (O . uncurry (liftA2 adjustR))
+>         . assocR
+>         . first scanR
+>         . unzip
+>         . fmap scanR
+>         . unO
