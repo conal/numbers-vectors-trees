@@ -1,7 +1,7 @@
 ---
-title: Classes for scanning
-tags: scan
-url: http://conal.net/blog/posts/classes-for-scanning/
+title: Composable parallel scanning
+tags: scan, functor
+url: http://conal.net/blog/posts/Composable-parallel-scanning/
 ...
 
  <!--[ 
@@ -13,13 +13,13 @@ url: http://conal.net/blog/posts/classes-for-scanning/
 < {-# OPTIONS_GHC -fno-warn-unused-imports #-} -- TEMP
 
 |
-Module      :  Scan
+Module      :  ParallelScan
 Copyright   :  (c) Conal Elliott 2011
 License     :  BSD3
 Maintainer  :  conal@conal.net
 Stability   :  experimental
 
-A class for scans
+A class for parallel scans, with instances for functor combinators
 
 > module Scan where
 
