@@ -1,7 +1,7 @@
 ---
 title: Classes for scanning
 tags: scan
-url: http://conal.net/blog/posts/deriving-tree-scans/
+url: http://conal.net/blog/posts/classes-for-scanning/
 ...
 
  <!--[ 
