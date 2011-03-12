@@ -2,6 +2,7 @@
 
 > {-# LANGUAGE GADTs, KindSignatures, EmptyDataDecls, ScopedTypeVariables #-}
 > {-# LANGUAGE TypeFamilies, TypeOperators #-}  -- for trie
+> {-# LANGUAGE FlexibleInstances, UndecidableInstances #-} -- for vector-space instances
 >
 > {-# OPTIONS_GHC -Wall -fno-warn-orphans #-}
 > {-# OPTIONS_GHC -fno-warn-incomplete-patterns #-} -- temporary, pending ghc/ghci fix
@@ -27,8 +28,12 @@ See the following blog posts:
 
 > import Prelude hiding (foldr,foldl,last,init,and)
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
+> import Data.AdditiveGroup
+> import Data.AffineSpace
+> import Data.Cross
 > import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
 > import Data.Traversable
+> import Data.VectorSpace
 > import Control.Arrow (first)
 
 > import FunctorCombo.StrictMemo
@@ -371,3 +376,39 @@ See [mux's stuff](https://bitbucket.org/mumux/stuff/src/1e9537e03f08/Vector.hs).
 Mux says
 
  > ah, from a related bug report: "I wish this was easier to fix. The difficulty is that the type inference engine (which has a sophisticated constraint solver) only sees one equation at a time, and hence can't check exhaustiveness). But the overlap checker (which sees all the equations at once) does not have a sophisticated solver." from spj
+
+vector-space Instances
+======================
+
+> instance (AdditiveGroup a, IsNat n)
+>   => AdditiveGroup (Vec n a) where
+>   zeroV = pure zeroV
+>   (^+^) = liftA2 (^+^)
+>   negateV = fmap negateV
+>
+> instance (IsNat n, VectorSpace a, s ~ Scalar a)
+>   => VectorSpace (Vec n a) where
+>   type Scalar (Vec n a) = Scalar a
+>   (*^) s = fmap (s *^)
+>
+> instance (InnerSpace a, s ~ Scalar a,
+>   AdditiveGroup (Scalar a), IsNat n)
+>   => InnerSpace (Vec n a) where
+>   (<.>) v = foldr (^+^) zeroV . liftA2 (<.>) v
+>
+> instance (AffineSpace a, IsNat n) => AffineSpace (Vec n a) where
+>   type Diff (Vec n a) = Vec n (Diff a)
+>   (.-.) = liftA2 (.-.)
+>   (.+^) = liftA2 (.+^)
+>
+> instance (AdditiveGroup a) => HasCross2 (Vec (S (S Z)) a) where
+>   cross2 (x :< (y :< ZVec)) = negateV y :< (x :< ZVec)
+>
+> instance (VectorSpace a, a ~ Scalar a) => HasCross3 (Vec (S (S (S Z))) a) where
+>   (ax :< (ay :< (az :< ZVec))) `cross3` (bx :< (by :< (bz :< ZVec)))
+>     = cx :< (cy :< (cz :< ZVec))
+>     where  cx = ay *^ bz ^-^ az *^ by
+>            cy = az *^ bx ^-^ ax *^ bz
+>            cz = ax *^ by ^-^ ay *^ bx
+>
+> -- TODO: Create instance for HasBasis
