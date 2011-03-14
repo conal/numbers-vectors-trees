@@ -30,6 +30,7 @@ See the following blog posts:
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
 > import Data.AdditiveGroup
 > import Data.AffineSpace
+> import Data.Basis
 > import Data.Cross
 > import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
 > import Data.Traversable
@@ -401,14 +402,29 @@ vector-space Instances
 >   (.-.) = liftA2 (.-.)
 >   (.+^) = liftA2 (.+^)
 >
-> instance (AdditiveGroup a) => HasCross2 (Vec (S (S Z)) a) where
+> instance (AdditiveGroup a) => HasCross2 (Vec TwoT a) where
 >   cross2 (x :< (y :< ZVec)) = negateV y :< (x :< ZVec)
 >
-> instance (VectorSpace a, a ~ Scalar a) => HasCross3 (Vec (S (S (S Z))) a) where
+> instance (VectorSpace a, a ~ Scalar a) => HasCross3 (Vec ThreeT a) where
 >   (ax :< (ay :< (az :< ZVec))) `cross3` (bx :< (by :< (bz :< ZVec)))
 >     = cx :< (cy :< (cz :< ZVec))
 >     where  cx = ay *^ bz ^-^ az *^ by
 >            cy = az *^ bx ^-^ ax *^ bz
 >            cz = ax *^ by ^-^ ay *^ bx
 >
-> -- TODO: Create instance for HasBasis
+> instance (HasBasis a, a ~ Scalar a) => HasBasis (Vec OneT a) where
+>   type Basis (Vec OneT a) = Basis a
+>   basisValue b = (basisValue b) :< ZVec
+>   decompose (a :< _) = decompose a
+>   decompose' (a :< _) = const a
+> 
+> instance (HasBasis a, HasBasis (Vec (S n) a), IsNat n)
+>   => HasBasis (Vec (S (S n)) a) where
+>   type Basis (Vec (S (S n)) a) = Basis a `Either` Basis (Vec (S n) a)
+>   basisValue (Left a) = basisValue a :< zeroV
+>   basisValue (Right b) = zeroV :< basisValue b
+>   decompose (a :< v) = decomp2 Left a ++ decomp2 Right v
+>   decompose' (a :< v) = decompose' a `either` decompose' v
+> 
+> decomp2 :: HasBasis w => (Basis w -> b) -> w -> [(b, Scalar w)]
+> decomp2 inject = fmap (first inject) . decompose
