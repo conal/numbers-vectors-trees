@@ -32,7 +32,6 @@ Library
      LeftNum
      Pair
      TreeScan
-     Scan
                        
   ghc-options:         -Wall
 

@@ -28,7 +28,6 @@ Simple 'Bit' type & 'Pair' functor
 > import FunctorCombo.StrictMemo (HasTrie(..))
 
 > import SEC
-> import Scan (ScanL(..),ScanR(..))
 
 
  -->
@@ -63,10 +62,9 @@ Other instances
 > instance Traversable Pair where
 >   sequenceA (fa :# fb) = (:#) <$> fa <*> fb
 
-> instance ScanL Pair where
->   scanL (a :# b) = ((mempty :# a), a `mappend` b)
-> instance ScanR Pair where
->   scanR (a :# b) = (a `mappend` b, (b :# mempty))
+> instance Monoid m => Monoid (Pair m) where 
+>   mempty = mempty :# mempty
+>   (a :# b) `mappend` (c :# d) = (a `mappend` c) :# (b `mappend` d)
 
 I might like to use use `Bool` instead of `Bit`, and replace the current `HasTrie Bool` instance.
 
@@ -95,4 +93,3 @@ Like `Arrow` `(***)`, but for `Pair`
 
 > (***) :: Unop a -> Unop a -> Unop (Pair a)
 > (f *** g) (a :# b) = (f a :# g b)
-
