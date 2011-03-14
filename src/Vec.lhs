@@ -28,13 +28,12 @@ See the following blog posts:
 
 > import Prelude hiding (foldr,foldl,last,init,and)
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
-> import Data.AdditiveGroup
 > import Data.AffineSpace
 > import Data.Basis
 > import Data.Cross
 > import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
 > import Data.Traversable
-> import Data.VectorSpace
+> import Data.VectorSpace hiding (sumV)
 > import Control.Arrow (first)
 
 > import FunctorCombo.StrictMemo
@@ -403,10 +402,10 @@ vector-space Instances
 >   (.+^) = liftA2 (.+^)
 >
 > instance (AdditiveGroup a) => HasCross2 (Vec TwoT a) where
->   cross2 (x :< (y :< ZVec)) = negateV y :< (x :< ZVec)
+>   cross2 (x :< y :< ZVec) = negateV y :< x :< ZVec
 >
 > instance (VectorSpace a, a ~ Scalar a) => HasCross3 (Vec ThreeT a) where
->   (ax :< (ay :< (az :< ZVec))) `cross3` (bx :< (by :< (bz :< ZVec)))
+>   (ax :< ay :< az :< ZVec) `cross3` (bx :< by :< bz :< ZVec)
 >     = cx :< (cy :< (cz :< ZVec))
 >     where  cx = ay *^ bz ^-^ az *^ by
 >            cy = az *^ bx ^-^ ax *^ bz
