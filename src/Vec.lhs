@@ -394,9 +394,6 @@ vector-space instances
 > instance (InnerSpace a, s ~ Scalar a,
 >   AdditiveGroup (Scalar a), IsNat n)
 >   => InnerSpace (Vec n a) where
->   -- (<.>) v = foldr (^+^) zeroV . liftA2 (<.>) v
->   -- (<.>) v = sumV . liftA2 (<.>) v
->   -- (<.>) v = result sumV (liftA2 (<.>) v)
 >   (<.>) = (result.result) sumV (liftA2 (<.>))
 >
 > instance (AffineSpace a, IsNat n) => AffineSpace (Vec n a) where
@@ -409,14 +406,14 @@ vector-space instances
 >
 > instance (VectorSpace a, a ~ Scalar a) => HasCross3 (Vec ThreeT a) where
 >   (ax :< ay :< az :< ZVec) `cross3` (bx :< by :< bz :< ZVec)
->     = cx :< (cy :< (cz :< ZVec))
+>     = cx :< cy :< cz :< ZVec
 >     where  cx = ay *^ bz ^-^ az *^ by
 >            cy = az *^ bx ^-^ ax *^ bz
 >            cz = ax *^ by ^-^ ay *^ bx
 >
 > instance (HasBasis a, a ~ Scalar a) => HasBasis (Vec OneT a) where
 >   type Basis (Vec OneT a) = Basis a
->   basisValue b = (basisValue b) :< ZVec
+>   basisValue b = basisValue b :< ZVec
 >   decompose (a :< _) = decompose a
 >   decompose' (a :< _) = const a
 > 
