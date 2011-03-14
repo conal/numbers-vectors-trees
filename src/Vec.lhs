@@ -31,9 +31,9 @@ See the following blog posts:
 > import Data.AffineSpace
 > import Data.Basis
 > import Data.Cross
-> import Data.Foldable (Foldable(..),foldl',foldr,foldr',and,toList)
+> import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
 > import Data.Traversable
-> import Data.VectorSpace hiding (sumV)
+> import Data.VectorSpace
 > import Control.Arrow (first)
 
 > import FunctorCombo.StrictMemo
@@ -435,10 +435,3 @@ Add post-processing, SEC-style:
 
 > result :: (b -> b') -> ((a -> b) -> (a -> b'))
 > result = (.)
-
-Sum over several vectors.
-To do: move into AdditiveGroup:
-
-> sumV :: (Foldable f, AdditiveGroup v) => f v -> v
-> sumV = foldr (^+^) zeroV
-
