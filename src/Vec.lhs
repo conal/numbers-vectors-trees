@@ -426,8 +426,6 @@ vector-space instances
 >   decompose' (a :< v) = decompose' a `either` decompose' v
 > 
 > decomp2 :: HasBasis w => (Basis w -> b) -> w -> [(b, Scalar w)]
-> -- decomp2 inject = fmap (first inject) . decompose
-> -- decomp2 inject = result (fmap (first inject)) decompose
 > decomp2 inject = (result.fmap.first) inject decompose
 
 Misc
