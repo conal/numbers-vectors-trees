@@ -18,7 +18,7 @@ Package-Url:         http://github.com/conal/numbers-vectors-trees
 Library
   hs-Source-Dirs:      src
   Extensions:
-  Build-Depends:       base<5, functor-combo, applicative-numbers
+  Build-Depends:       base<5, functor-combo, applicative-numbers, vector-space
   Exposed-Modules:     
      TNat
      Nat
