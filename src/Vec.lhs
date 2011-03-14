@@ -31,7 +31,7 @@ See the following blog posts:
 > import Data.AffineSpace
 > import Data.Basis
 > import Data.Cross
-> import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
+> import Data.Foldable (Foldable(..),foldl',foldr,foldr',and,toList)
 > import Data.Traversable
 > import Data.VectorSpace hiding (sumV)
 > import Control.Arrow (first)
@@ -377,7 +377,7 @@ Mux says
 
  > ah, from a related bug report: "I wish this was easier to fix. The difficulty is that the type inference engine (which has a sophisticated constraint solver) only sees one equation at a time, and hence can't check exhaustiveness). But the overlap checker (which sees all the equations at once) does not have a sophisticated solver." from spj
 
-vector-space Instances
+vector-space instances
 ======================
 
 > instance (AdditiveGroup a, IsNat n)
@@ -394,7 +394,10 @@ vector-space Instances
 > instance (InnerSpace a, s ~ Scalar a,
 >   AdditiveGroup (Scalar a), IsNat n)
 >   => InnerSpace (Vec n a) where
->   (<.>) v = foldr (^+^) zeroV . liftA2 (<.>) v
+>   -- (<.>) v = foldr (^+^) zeroV . liftA2 (<.>) v
+>   -- (<.>) v = sumV . liftA2 (<.>) v
+>   -- (<.>) v = result sumV (liftA2 (<.>) v)
+>   (<.>) = (result.result) sumV (liftA2 (<.>))
 >
 > instance (AffineSpace a, IsNat n) => AffineSpace (Vec n a) where
 >   type Diff (Vec n a) = Vec n (Diff a)
@@ -427,3 +430,18 @@ vector-space Instances
 > 
 > decomp2 :: HasBasis w => (Basis w -> b) -> w -> [(b, Scalar w)]
 > decomp2 inject = fmap (first inject) . decompose
+
+Misc
+====
+
+Add post-processing, SEC-style:
+
+> result :: (b -> b') -> ((a -> b) -> (a -> b'))
+> result = (.)
+
+Sum over several vectors.
+To do: move into AdditiveGroup:
+
+> sumV :: (Foldable f, AdditiveGroup v) => f v -> v
+> sumV = foldr (^+^) zeroV
+
