@@ -414,7 +414,7 @@ vector-space instances
 > instance (HasBasis a, a ~ Scalar a) => HasBasis (Vec OneT a) where
 >   type Basis (Vec OneT a) = Basis a
 >   basisValue b = basisValue b :< ZVec
->   decompose (a :< _) = decompose a
+>   decompose  (a :< _) = decompose a
 >   decompose' (a :< _) = const a
 > 
 > instance (HasBasis a, HasBasis (Vec (S n) a), IsNat n)
@@ -422,11 +422,13 @@ vector-space instances
 >   type Basis (Vec (S (S n)) a) = Basis a `Either` Basis (Vec (S n) a)
 >   basisValue (Left a) = basisValue a :< zeroV
 >   basisValue (Right b) = zeroV :< basisValue b
->   decompose (a :< v) = decomp2 Left a ++ decomp2 Right v
+>   decompose  (a :< v) = decomp2 Left a ++ decomp2 Right v
 >   decompose' (a :< v) = decompose' a `either` decompose' v
 > 
 > decomp2 :: HasBasis w => (Basis w -> b) -> w -> [(b, Scalar w)]
-> decomp2 inject = fmap (first inject) . decompose
+> -- decomp2 inject = fmap (first inject) . decompose
+> -- decomp2 inject = result (fmap (first inject)) decompose
+> decomp2 inject = (result.fmap.first) inject decompose
 
 Misc
 ====
