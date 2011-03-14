@@ -62,7 +62,7 @@ As mentioned in [*From tries to trees*], perfect binary trees (with values at le
 Moreover, as shown in [*A trie for length-typed vectors*], such trees naturally arise as the trie functors for size-typed vectors of bits.
 A bit can represented as the type of natural numbers less than two, as in [*Type-bounded numbers*], but for notational convenience I'll use a specialized `Bit` type and `Pair` functor.
 
-> type Bits  n = Vec n Bit
+> type Bits n = Vec n Bit
 >
 > type T n = Trie (Bits n)
 
