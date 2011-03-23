@@ -136,13 +136,6 @@ GHC 6.12.3 gives me a warning (with `-Wall`, which I always use):
                      ZVec (_ :< _)
                      (_ :< _) ZVec
 
-Adding the following cases silences the compiler.
-
-> ZVec `applyV` (_ :< _) = undefined
-> (_ :< _) `applyV` ZVec = undefined
-
-I don't know how the two cases could even type-check.
-
 However, benmachine found that GHC 7.0.1 balks at these definitions as ill-typed,
 but also warns of non-exhaustive patterns when the lines are removed.
 
@@ -238,7 +231,6 @@ An $n$-vector associates a value with every number from $0$ to $n-1$, so it's a 
 >   trie = trieB nat
 >   untrie (a :< _ ) BZero     = a
 >   untrie (_ :< as) (BSucc m) = untrie as m
->   enumerate (a :< as) = (BZero,a) : map (first BSucc) (enumerate as)
 
 > trieB :: Nat n -> (BNat n -> a) -> (BNat n :->: a)
 > trieB Zero     _ = ZVec
@@ -323,7 +315,6 @@ Its definition closely follows the definition of `f :^ n`:
 
 >   ZeroC v `untrie` ZVec      = v
 >   SuccC t `untrie` (a :< as) = (t `untrie` a) `untrie` as
->   enumerate = error "enumerate: not yet defined on Vec n a"
 
 For `untrie`, we were able to follow the zero/successor structure of the trie.
 For `trie`, we don't have such a structure to follow, but we can play the same trick as for defining `units` above: use the `nat` method of the `IsNat` class to synthesize a number of type `Nat n`, and then follow the structure of that number in a new recursive function definition.
