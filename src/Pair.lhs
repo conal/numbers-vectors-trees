@@ -45,7 +45,7 @@ Bits and pairs
 >   trie f = f Off :# f On
 >   untrie (z :# _) Off = z
 >   untrie (_ :# o) On  = o
->   enumerate (z :# o) = [(Off,z),(On,o)]
+
 
 Other instances
 ===============
