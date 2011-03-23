@@ -82,7 +82,7 @@ Or update that module and refer to it here, focusing remarks on changes.
 If the generality of `Vec` leads to inconvenient notation, then maybe use a specialized definitions.
 I'd like the general form to work, so I'm trying it first.
 
-Start with a functional algorithm exclusive scan based on Guy Blelloch's.
+Start with a functional algorithm for exclusive scan based on Guy Blelloch's.
 Use a *left-folded* binary tree to make it easy to access consecutive pairs (even/odd).
 
 Scan

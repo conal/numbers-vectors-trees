@@ -86,8 +86,8 @@ Like the `Arrow` `first` and `second` but for `Pair`:
 Also handy:
 
 > firsts,seconds :: (Traversable f, Applicative f) => f b :-+> f (Pair b)
-> firsts  = inInvert . first
-> seconds = inInvert . second
+> firsts  = inDist . first
+> seconds = inDist . second
 
 Like `Arrow` `(***)`, but for `Pair`
 

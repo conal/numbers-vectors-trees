@@ -55,5 +55,5 @@ It must include `a` and exclude `f`.
 For `scan`, we'll want to transform the right-most children of each of the two subtrees:
 
 > twoRights :: IsNat m => Pair a :-+> Pair (T m a)
-> twoRights = inInvert . rightmost
+> twoRights = inDist . rightmost
 

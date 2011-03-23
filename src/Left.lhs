@@ -154,7 +154,12 @@ The instance definitions are completely unchanged, since they are based purely o
 
 > instance (Functor f, Foldable f) => Foldable (f :^ n) where
 >   foldMap h (ZeroC a ) = h a
->   foldMap h (SuccC as) = fold (foldMap h <$> as)
+>   foldMap h (SuccC as) = foldMap (foldMap h) as
+>               --       = fold (foldMap h <$> as)
+>   fold (ZeroC a ) = a
+>   fold (SuccC as) = foldMap fold as
+>               --  = fold (fold <$> as)
+
 
 > instance Traversable f => Traversable (f :^ n) where
 >   sequenceA (ZeroC qa) = ZeroC <$> qa

@@ -12,7 +12,7 @@ Stability   :  experimental
 
 Semantic editor combinators
 
-> module SEC ((~>),(~>*), Unop, (:-+>), invert, inInvert) where
+> module SEC ((~>),(~>*), Unop, (:-+>), dist, inDist) where
 
 > import Prelude hiding ((.))
 > import Control.Applicative (Applicative(..))
@@ -64,10 +64,10 @@ Look for a more systematic approach.
 
 A synonym 
 
-> invert :: (Traversable f, Applicative g) => f (g a) -> g (f a)
-> invert = sequenceA
+> dist :: (Traversable f, Applicative g) => f (g a) -> g (f a)
+> dist = sequenceA
 
-> inInvert :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
->             f (g a) :-+> g (f a)
-> inInvert = invert ~> invert
+> inDist :: (Traversable g, Applicative f, Traversable f, Applicative g) =>
+>           f (g a) :-+> g (f a)
+> inDist = dist ~> dist
 

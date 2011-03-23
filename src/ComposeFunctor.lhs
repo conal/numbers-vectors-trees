@@ -119,12 +119,18 @@ The `Foldable` and `Traversable` classes are also closed under composition.
 
 > instance (Functor f, Foldable f) => Foldable (f :^ n) where
 >   fold (ZeroC a ) = a
->   fold (SuccC as) = fold (fold <$> as)
+>   fold (SuccC as) = foldMap fold as
+>                     -- fold (fold <$> as)
 
 Or
 
+<   foldMap h (ZeroC a ) = h a
+<   foldMap h (SuccC as) = fold (foldMap h <$> as)
+
+Better yet:
+
 >   foldMap h (ZeroC a ) = h a
->   foldMap h (SuccC as) = fold (foldMap h <$> as)
+>   foldMap h (SuccC as) = foldMap (foldMap h) as
 
 
 > instance Traversable f => Traversable (f :^ n) where
