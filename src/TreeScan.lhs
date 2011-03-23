@@ -58,7 +58,7 @@ In the section called "Three Other Algorithms", Guy writes
 
 This algorithm assumes the array size is a power of two, so that each uninterleaving yields the same number of even as odd elements.
 I want to capture this power-of-two assumption statically.
-As mentioned in [*From tries to trees*], perfect binary trees (with values at leaves) of depth $n$ have $2^n$ elements and can be statically depth-typed.
+As mentioned in [*From tries to trees*], binary complete leaf trees (with values at leaves) of depth $n$ have $2^n$ elements and can be statically depth-typed.
 Moreover, as shown in [*A trie for length-typed vectors*], such trees naturally arise as the trie functors for size-typed vectors of bits.
 A bit can represented as the type of natural numbers less than two, as in [*Type-bounded numbers*], but for notational convenience I'll use a specialized `Bit` type and `Pair` functor.
 
@@ -109,6 +109,7 @@ And then use `inC` for the tree transformation pattern:
 > scan1 :: Num a => Unop (T n a)
 > scan1 = inC (const 0) (inInvert h)
 >  where
+>    h :: (IsNat m, Num b) => Unop (Pair (T m b))
 >    h (es :# os) = (ss :# ss + es)
 >     where ss = scan1 (es + os)
 
@@ -175,7 +176,7 @@ Together, these properties mean that `ss` can overwrite `os`.
 Similarly, `ss+es` has the same length as `es`, and that sum is the last use of `es`, so `ss+es` can overwrite `es`.
 
 To leave the evens in place and update the odds, we can simply replace each consecutive `(e,o)` pair with `(e,e+o)`.
-Then perform the recursive scan on just the seconds of these pairs, leaving the `evens` untouched.
+Then perform the recursive scan on just the seconds (odds) of these pairs, leaving the evens untouched.
 The result corresponds to `invert (es :# ss)`, so we'll want to replace each consecutive `(e :# s)` pair with `(s :# s+e)`.
 
 The modified `SuccC` case:
@@ -206,7 +207,7 @@ Next I want to eliminate `seconds`, with its implied structural inversions.
 Trees within trees
 ------------------
 
-Another whack: place right-folded trees inside of left-folded trees.
+Place right-folded trees inside of left-folded trees.
 
 > type RBits m = R.Vec m Bit
 >
@@ -250,8 +251,7 @@ Test it:
 < ((((0,1),(3,6)),((10,15),(21,28))),(((36,45),(55,66)),((78,91),(105,120))))
 
 Let's take another whack, use `up` and `down` from `NavigateTree`.
-Drop `inC`, and work always at the level of these left/right hybrid trees.
-Instead of `inC`, make `n` explicit as a typed number.
+Work at the level of these left/right hybrid trees, and instead of `inC`, make `n` explicit as a typed number.
 
 > scan4 :: (IsNat n, Num a) => Unop (T n a)
 > scan4 = inRZeroCs (scan4' nat)
