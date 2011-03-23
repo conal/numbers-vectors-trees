@@ -36,7 +36,6 @@ See those modules for more description.
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
 > import Data.Traversable (Traversable(..))
 > import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
-> import Control.Arrow (first)
 
 > import FunctorCombo.StrictMemo
 
@@ -292,7 +291,6 @@ Vectors as tries
 >   trie = trieB nat
 >   untrie (_ :> a ) BZero     = a
 >   untrie (as :> _) (BSucc m) = untrie as m
->   enumerate (as :> a) = (BZero,a) : map (first BSucc) (enumerate as)
 
 > trieB :: Nat n -> (BNat n -> a) -> (BNat n :->: a)
 > trieB Zero     _ = ZVec
@@ -306,13 +304,6 @@ Vector tries
 >   type Trie (Vec n a) = Trie a :^ n
 >   ZeroC b `untrie` ZVec      = b
 >   SuccC t `untrie` (as :> a) = (t `untrie` as) `untrie` a
-
- <!--
-
->   enumerate = error "enumerate: not yet defined on Vec n a"
-
- -->
-
 >   trie = trieN nat
 
 > trieN :: HasTrie a => Nat n -> (Vec n a -> b) -> (Trie a :^ n) b
