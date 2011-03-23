@@ -90,16 +90,16 @@ Scan
 
 < scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (invert (ss :# ss + es))
+< scan1 (SuccC as) = SuccC (dist (ss :# ss + es))
 <  where
-<    (es :# os) = invert as
+<    (es :# os) = dist as
 <    ss         = scan1 (es + os)
 
 Factor out the pair/tree containment inversions:
 
 < scan1 :: Num a => Unop (T n a)
 < scan1 (ZeroC _ ) = ZeroC 0
-< scan1 (SuccC as) = SuccC (inInvert h as)
+< scan1 (SuccC as) = SuccC (inDist h as)
 <  where
 <    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
@@ -107,7 +107,7 @@ Factor out the pair/tree containment inversions:
 And then use `inC` for the tree transformation pattern:
 
 > scan1 :: Num a => Unop (T n a)
-> scan1 = inC (const 0) (inInvert h)
+> scan1 = inC (const 0) (inDist h)
 >  where
 >    h :: (IsNat m, Num b) => Unop (Pair (T m b))
 >    h (es :# os) = (ss :# ss + es)
@@ -162,7 +162,7 @@ How can we shift from a functional algorithm toward one that updates its argumen
 Look again at the functional version:
 
 < scan1 :: Num a => Unop (T n a)
-< scan1 = inC (const 0) (inInvert h)
+< scan1 = inC (const 0) (inDist h)
 <  where
 <    h (es :# os) = (ss :# ss + es)
 <     where ss = scan1 (es + os)
@@ -177,7 +177,7 @@ Similarly, `ss+es` has the same length as `es`, and that sum is the last use of 
 
 To leave the evens in place and update the odds, we can simply replace each consecutive `(e,o)` pair with `(e,e+o)`.
 Then perform the recursive scan on just the seconds (odds) of these pairs, leaving the evens untouched.
-The result corresponds to `invert (es :# ss)`, so we'll want to replace each consecutive `(e :# s)` pair with `(s :# s+e)`.
+The result corresponds to `dist (es :# ss)`, so we'll want to replace each consecutive `(e :# s)` pair with `(s :# s+e)`.
 
 The modified `SuccC` case:
 
