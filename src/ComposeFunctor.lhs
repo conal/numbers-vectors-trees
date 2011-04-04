@@ -150,6 +150,8 @@ We can use the `Applicative` instance in standard way to get a `Monoid` instance
 >   mempty  = pure mempty
 >   mappend = liftA2 mappend
 
+(To follow the general pattern exactly, replace the first two constraints with `Applicative (f :^ n)` and add `FlexibleContexts` to the module's `LANGUAGE` pragma.)
+
 
 Equality and ordering
 =====================
