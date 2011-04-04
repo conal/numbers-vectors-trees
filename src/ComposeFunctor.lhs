@@ -23,6 +23,7 @@ See <http://conal.net/blog/posts/a-trie-for-length-typed-vectors/>.
 > import Control.Applicative (Applicative(..),liftA2,(<$>))
 > import Data.Foldable (Foldable(..),and)
 > import Data.Traversable (Traversable(..))
+> import Data.Monoid (Monoid(..))
 
 > import Nat
 > import ShowF
@@ -143,6 +144,13 @@ i.e.,
 <
 <   sequenceA . SuccC = fmap SuccC . sequenceA . fmap sequenceA
 
+We can use the `Applicative` instance in standard way to get a `Monoid` instance:
+
+> instance (IsNat n, Applicative f, Monoid m) => Monoid ((f :^ n) m) where
+>   mempty  = pure mempty
+>   mappend = liftA2 mappend
+
+
 Equality and ordering
 =====================
 
@@ -153,5 +161,4 @@ Standard forms:
 >
 > instance (Foldable f, Applicative f, IsNat n, Ord a) => Ord ((f :^ n) a) where
 >   compare = (fmap.fmap) fold (liftA2 compare)
-
 

@@ -36,6 +36,7 @@ See those modules for more description.
 > import Control.Applicative (Applicative(..),(<$>),liftA2)
 > import Data.Traversable (Traversable(..))
 > import Data.Foldable (Foldable(..),foldl',foldr',and,toList)
+> import Data.Monoid (Monoid(..))
 
 > import FunctorCombo.StrictMemo
 
@@ -171,6 +172,13 @@ The instance definitions are completely unchanged, since they are based purely o
 To do: A better `Show` instance, rendering the tree structure.
 I haven't figured out how yet.
 (See `Junk.lhs`.)
+
+We can use the `Applicative` instance in standard way to get a `Monoid` instance:
+
+> instance (IsNat n, Applicative f, Monoid m) => Monoid ((f :^ n) m) where
+>   mempty  = pure mempty
+>   mappend = liftA2 mappend
+
 
 Equality and ordering
 ---------------------
