@@ -20,7 +20,7 @@ Simple 'Bit' type & 'Pair' functor
 >     where
 
 > import Data.Monoid (Monoid(..))
-> import Control.Applicative (Applicative(..),(<$>))
+> import Control.Applicative (Applicative(..),(<$>),liftA2)
 > import Data.Foldable (Foldable(..))
 > import Data.Traversable
 > import qualified Control.Arrow as Ar (first,second)
@@ -62,9 +62,16 @@ Other instances
 > instance Traversable Pair where
 >   sequenceA (fa :# fb) = (:#) <$> fa <*> fb
 
-> instance Monoid m => Monoid (Pair m) where 
->   mempty = mempty :# mempty
->   (a :# b) `mappend` (c :# d) = (a `mappend` c) :# (b `mappend` d)
+< instance Monoid m => Monoid (Pair m) where 
+<   mempty = mempty :# mempty
+<   (a :# b) `mappend` (c :# d) = (a `mappend` c) :# (b `mappend` d)
+
+Alternatively, use the following standard instance, which works for applicative functors.
+
+> instance Monoid m => Monoid (Pair m) where
+>   mempty  = pure mempty
+>   mappend = liftA2 mappend
+
 
 I might like to use use `Bool` instead of `Bit`, and replace the current `HasTrie Bool` instance.
 
