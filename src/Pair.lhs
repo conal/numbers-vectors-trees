@@ -50,11 +50,20 @@ Bits and pairs
 Other instances
 ===============
 
+The `Functor`, `Applicative`, and `Monad` instances are all determined by requiring that the semantic function `untrie` be morphisms w.r.t those classes.
+
 > instance Functor Pair where fmap f (a :# b) = (f a :# f b)
 
 > instance Applicative Pair where
 >   pure a = a :# a
 >   (f :# g) <*> (x :# y) = (f x :# g y)
+
+> instance Monad Pair where
+>   return = pure
+>   m >>= k = joinP (k <$> m)
+> 
+> joinP :: Pair (Pair a) -> Pair a
+> joinP ((a :# _) :# (_ :# d)) = a :# d
 
 > instance Foldable Pair where
 >   fold (a :# b) = a `mappend` b
