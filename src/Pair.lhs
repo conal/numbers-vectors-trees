@@ -50,7 +50,7 @@ Bits and pairs
 Other instances
 ===============
 
-The `Functor`, `Applicative`, and `Monad` instances are all determined by requiring that the semantic function `untrie` be morphisms w.r.t those classes.
+The `Functor`, `Applicative`, `Monad`, and `Monoid` instances are all determined by requiring that the semantic function `untrie` be morphisms w.r.t those classes.
 
 > instance Functor Pair where fmap f (a :# b) = (f a :# f b)
 
