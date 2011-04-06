@@ -13,9 +13,9 @@ Stability   :  experimental
 Simple 'Bit' type & 'Pair' functor
 
 > module Pair
->   ( Bit, Pair(..)
+>   ( Bit, Pair(..), fstP, sndP
 >   , pair, unpair, inPair
->   , first, second, firsts, seconds, (***)
+>   , first, second, firsts, seconds, (***), (&&&)
 >   )
 >     where
 
@@ -46,6 +46,9 @@ Bits and pairs
 >   untrie (z :# _) Off = z
 >   untrie (_ :# o) On  = o
 
+> fstP, sndP :: Pair a -> a
+> fstP (a :# _) = a
+> sndP (_ :# a) = a
 
 Other instances
 ===============
@@ -63,7 +66,13 @@ The `Functor`, `Applicative`, `Monad`, and `Monoid` instances are all determined
 >   m >>= k = joinP (k <$> m)
 > 
 > joinP :: Pair (Pair a) -> Pair a
-> joinP ((a :# _) :# (_ :# d)) = a :# d
+> joinP = (fstP.fstP) &&& (sndP.sndP)
+
+Alternatively,
+
+< joinP pp = (fstP.fstP) pp :# (sndP.sndP) pp
+<
+< joinP ((a :# _) :# (_ :# d)) = a :# d
 
 > instance Foldable Pair where
 >   fold (a :# b) = a `mappend` b
@@ -105,7 +114,10 @@ Also handy:
 > firsts  = inDist . first
 > seconds = inDist . second
 
-Like `Arrow` `(***)`, but for `Pair`
+Like `Arrow` `(&&&)` & `(***)`, but for `Pair`
 
-> (***) :: Unop a -> Unop a -> Unop (Pair a)
+> (***) :: (a -> b) -> (a -> b) -> (Pair a -> Pair b)
 > (f *** g) (a :# b) = (f a :# g b)
+>
+> (&&&) :: (a -> b) -> (a -> b) -> (a -> Pair b)
+> (f &&& g) a = f a :# g a
