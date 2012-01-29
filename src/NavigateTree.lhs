@@ -28,7 +28,7 @@ Navigating in trees of trees
  <!-- -->
 
 A depth-$(n+m)$ tree of values can also be thought of as a depth-$n$ tree of depth-$m$ trees.
-It will be easiest to combine trees of opposite orientation, with right-folded outside and left-folded inside.
+It will be easiest to combine trees of opposite orientation, with left-folded outside and right-folded inside.
 
 > up   :: (Functor f, IsNat m) => (f L.:^ S n) ((f R.:^ m) a) -> (f L.:^ n) ((f R.:^ (S m)) a)
 > up   = fmap R.SuccC . L.unSuccC
